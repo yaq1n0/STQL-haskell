@@ -1,3 +1,8 @@
+# IDE folders
+.idea/*
+.vscode/*
+
+# Haskell-specific files
 dist
 dist-*
 cabal-dev
