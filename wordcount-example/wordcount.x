@@ -35,7 +35,7 @@ main::IO ()
 main = do
   s <- getContents
   -- "alexScanTokens' argument is a string which contains the entire input and the result is a list of tokens, where Token is a user-defined type.
-  -- here, tokens are just words. The final line of main prints each of these words in a separate line.""
+  -- here, tokens are just words. The final line of main prints each of these words in a separate line."
   let toks = alexScanTokens s
   mapM_ putStrLn toks
 }
