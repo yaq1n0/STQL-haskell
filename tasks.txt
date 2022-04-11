@@ -1,0 +1,16 @@
+https://hackage.haskell.org/package/rdf4h
+https://hackage.haskell.org/package/swish
+
+subject, predicate, object
+
+separate a turtle file into triples - rdf4h (parsefromfile), swish (parseturtle)
+combine graphs - swish (graphmatch)
+be able to easily select base, prefix, elements of the triples - rdf4h (subjectOf, predicateof, objectof), swish (fromRDFTriple)
+expand triples - rdf4h (expandTriples)
+handle name clashes? - rdf4h (compares triples - equalSubjects, equalPredicates, equalObjects)
+filter by subj, pred, obj - rdf4h (tripleContainsNode, subjectsWithPredicate, objectsOfPredicate)
+validate uRI - rdf4h (validateIRI, IT'S IRI), swish (isURI)
+easy way of forming and exporting triples - rdf4h (addtriple)
+sorting - rdf4h (uordered)
+quoting strings - swish (quote)
+export triples into a turtle file - rdf4h (writets), swish (formatGraphAsText)

@@ -1,6 +1,7 @@
-# IDE folders
+# IDE folders/files
 .idea/*
 .vscode/*
+.DS_Store
 
 # Haskell-specific files
 dist

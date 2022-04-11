@@ -1,8 +1,9 @@
-IMPORT foo.ttl AS foo
-NEW out5.ttl AS out
+IMPORT foo foo.ttl 
+NEW out out5.ttl 
 
 WHERE foo.obj < 0 OR foo.obj > 99
-ADD foo.subj, <http://www.cw.org/problem5/#inRange>, false
+ADDTO out foo.subj, <http://www.cw.org/problem5/#inRange>, false
+
 WHERE foo.obj >= 0 OR foo.obj <= 99
-ADD foo.subj, foo.pred, foo.obj+1
-ADD foo.subj, <http://www.cw.org/problem5/#inRange>, true
+ADDTO out foo.subj, foo.pred, foo.obj+1
+ADDTO out foo.subj, <http://www.cw.org/problem5/#inRange>, true

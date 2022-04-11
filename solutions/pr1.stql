@@ -1,8 +1,8 @@
-IMPORT foo.ttl AS foo 
-IMPORT bar.ttl AS bar
-NEW out1.ttl AS out 
+IMPORT foo foo.ttl 
+IMPORT bar bar.ttl
+NEW out out1.ttl
 // same as NEW out1.ttl then IMPORT out1.ttl AS out
 
 WHERE TRUE
-ADD foo.all TO out
-ADD bar.all TO out //ADD foo.all is equivalent to ADD foo.subj, foo.pred, foo.obj
+ADDTO out foo.all
+ADDTO out bar.all //ADD bar.all is equivalent to ADD bar.subj, bar.pred, bar.obj
