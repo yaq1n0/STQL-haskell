@@ -1,0 +1,5 @@
+IMPORT foo.ttl AS foo
+NEW out2.ttl AS out
+
+WHERE foo.subj == "thing" AND foo.obj == "other thing"
+ADD foo.all TO out

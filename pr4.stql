@@ -1,0 +1,8 @@
+IMPORT foo.ttl AS foo
+IMPORT bar.ttl AS bar
+NEW out4.ttl AS out
+
+WHERE foo.obj == bar.subj
+ADD foo.all TO out
+WHERE foo.subj == bar.obj
+ADD bar.all TO out
