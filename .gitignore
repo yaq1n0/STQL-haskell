@@ -2,6 +2,7 @@
 .idea/*
 .vscode/*
 .DS_Store
+./lib/*
 
 # Haskell-specific files
 dist

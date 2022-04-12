@@ -18,8 +18,13 @@ import Swish.RDF.Parser.Turtle
     ( 
       ParseResult,
       parseTurtle,  
-      parseTurtlefromText      
+      parseTurtlefromText  
     )
+
+import Swish.RDF.Formatter.Turtle
+    (
+      formatGraphAsText
+    ) 
 
 import Data.RDF
   (
@@ -36,15 +41,24 @@ import Data.RDF
   )
 
 -- Swish version
-importFile :: IO String
-importFile = do
-      contents <- readFile "../inputs/bar.ttl"
-      let res = parseInSwish contents
-      print res
-      return contents
+-- importFile :: IO String
+-- importFile = do
+--       contents <- readFile "../inputs/bar.ttl"
+--       res <- parseInSwish contents
+--       case res of
+--         Left err -> error "Can't parse the file."
+--         Right rdfGraph -> do
+--             let o = formatGraphAsText rdfGraph
+--             print o
+--       return contents
 
-parseInSwish :: String -> ParseResult
-parseInSwish turtleString = parseTurtle (TL.pack turtleString) Nothing
+-- parseInSwish :: String -> ParseResult
+-- parseInSwish turtleString = parseTurtle (TL.pack turtleString) Nothing
+
+-- toText :: ParseResult -> Text
+-- toText p = do
+--             res <- 
+--             Right formatGraphAsText p
 
 -- Rdf4h version
 parseInRdf4 :: IO ()
