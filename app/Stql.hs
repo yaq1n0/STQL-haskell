@@ -7,7 +7,7 @@ Patrycja Wanat
 {-# LANGUAGE ScopedTypeVariables,
              OverloadedStrings #-}
 
-module Stql where
+module Main where
 
 import System.IO ()  
 import Control.Monad ()
