@@ -7,12 +7,12 @@ Patrycja Wanat
 {-# LANGUAGE ScopedTypeVariables,
              OverloadedStrings #-}
 
-module Main where
+module Stql where
 
-import System.IO  
-import Control.Monad
+import System.IO ()  
+import Control.Monad ()
 import qualified Data.Text as T
-import Data.Text.Lazy as TL
+import Data.Text.Lazy as TL ()
 
 import Swish.RDF.Parser.Turtle
     ( 
