@@ -39,7 +39,8 @@ executable PLC
                       rdf4h,
                       swish,
                       utf8-string,
-                      mtl
+                      mtl,
+                      array
     
     hs-source-dirs:   app
     default-language: Haskell2010 
