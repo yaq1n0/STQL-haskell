@@ -3,6 +3,13 @@
 .vscode/*
 .DS_Store
 
+# compilation stuff
+./dist-newstyle/
+Lexer.hs
+Parser.hs
+Main
+Stql
+
 # Haskell-specific files
 dist
 dist-*
