@@ -27,8 +27,8 @@ Term	:  true				  {STrue}
       |  false			  {SFalse}
 
 {
-parseError :: MonadError [Char] m => a -> m c
-parseError _ = throwError "Parse Error!"
+parseError :: L.Token -> a
+parseError _ = error "Parse Error!"
 }
 -- END OF REF1
 
