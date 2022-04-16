@@ -11,20 +11,21 @@ module Main where
 
 import System.IO ()  
 import Control.Monad ()
+import Control.Monad.State.Lazy
+  (
+    execStateT
+  )
 import qualified Data.Text as T
+-- import qualified Data.RDF.State 
+import Data.RDF.State as RDFState
+  (
+    RdfST,
+    addTriple,
+    removeTriple,
+    unRdfST,
+    showGraph
+  )
 import Data.Text.Lazy as TL ()
-
-import Swish.RDF.Parser.Turtle
-    ( 
-      ParseResult,
-      parseTurtle,  
-      parseTurtlefromText  
-    )
-
-import Swish.RDF.Formatter.Turtle
-    (
-      formatGraphAsText
-    ) 
 
 import Data.RDF
   (
@@ -37,34 +38,45 @@ import Data.RDF
     parseFile,
     fromEither,
     query,
-    objectOf
+    objectOf,
+    empty,
+    triple,
+    unode
   )
 
--- Swish version
--- importFile :: IO String
--- importFile = do
---       contents <- readFile "../inputs/bar.ttl"
---       res <- parseInSwish contents
---       case res of
---         Left err -> error "Can't parse the file."
---         Right rdfGraph -> do
---             let o = formatGraphAsText rdfGraph
---             print o
---       return contents
-
--- parseInSwish :: String -> ParseResult
--- parseInSwish turtleString = parseTurtle (TL.pack turtleString) Nothing
-
--- toText :: ParseResult -> Text
--- toText p = do
---             res <- 
---             Right formatGraphAsText p
-
 -- Rdf4h version
-parseInRdf4 :: IO ()
-parseInRdf4 = do
+importFile :: IO ()
+importFile = do
   result <- parseFile (TurtleParser Nothing Nothing) "../inputs/bar.ttl" :: IO (Either ParseFailure (RDF TList))
   print result
 
 main :: IO ()
-main = parseInRdf4
+main = importFile
+
+--REF1, Rdf4h documentation
+-- main :: IO ()
+-- main = do
+--   let myEmptyGraph = empty :: RDF TList
+--   newGraph <- execStateT (unRdfST createGraph) myEmptyGraph
+--   putStrLn (showGraph newGraph)
+
+-- createGraph :: (Rdf rdfImpl, Monad m) => RdfST rdfImpl m ()
+-- createGraph = do
+--   -- add a triple to the empty graph
+--   let triple1 = triple (unode "http://www.example.com/rob")
+--                        (unode "http://xmlns.com/foaf/0.1/interest")
+--                        (unode "http://dbpedia.org/resource/Scotch_whisky")
+--   RDFState.addTriple triple1
+
+--   -- add another triple to the graph
+--   let triple2 = triple (unode "http://www.example.com/rob")
+--                        (unode "http://xmlns.com/foaf/0.1/interest")
+--                        (unode "http://dbpedia.org/resource/Haskell_(programming_language)")
+--   RDFState.addTriple triple2
+
+--   -- remove one of my interests
+--   RDFState.removeTriple triple1
+--END OF REF1
+
+-- REFERENCES
+-- REF 1, Rdf4h documentation: https://hackage.haskell.org/package/rdf4h-5.0.1/docs/Data-RDF-State.html

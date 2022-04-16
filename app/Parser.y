@@ -6,7 +6,7 @@ import qualified Lexer as L
 import Control.Monad.Error
 }
 
--- REF1 (REF for reference)
+-- REF1 (REF for reference), Book: Alex and Happy Lexers and Parsers in Haskell
 %monad{L.P}
 %lexer{L.lexer}{L.TEOF}
 %name parse

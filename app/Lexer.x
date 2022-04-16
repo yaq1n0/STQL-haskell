@@ -27,7 +27,7 @@ data Token =
      | TEOF --end of file
      deriving (Eq,Show)
 
--- REF1 (REF for reference)
+-- REF1 (REF for reference), Book: Alex and Happy Lexers and Parsers in Haskell
 type AlexInput = [Word8]
 alexGetByte :: AlexInput -> Maybe (Word8,AlexInput)
 alexGetByte (b:bs) = Just (b,bs)

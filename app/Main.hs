@@ -7,7 +7,7 @@ import qualified AST
 import qualified Evaluator as E
 import Codec.Binary.UTF8.String (encode)
 
--- REF1 (REF for reference)
+-- REF1 (REF for reference), Book: Alex and Happy Lexers and Parsers in Haskell
 output::AST.Term -> String
 output t = (show t)++"\n"++(show (E.eval t))
 

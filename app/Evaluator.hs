@@ -1,7 +1,7 @@
 module Evaluator where
 import qualified AST
 
--- REF1 (REF for reference)
+-- REF1 (REF for reference), Book: Alex and Happy Lexers and Parsers in Haskell
 data Value =
   VBool Bool
   |VInt Integer
