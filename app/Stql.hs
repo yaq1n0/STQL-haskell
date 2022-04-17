@@ -25,13 +25,22 @@ import Data.Text.Lazy as TL
 import Swish.RDF.Graph
     (
       RDFGraph,
-      emptyRDFGraph
+      emptyRDFGraph,
+      toRDFLabel
     )
 
 import Swish.RDF.Formatter.Turtle
     (
       formatGraphAsText
-    ) 
+    )
+
+import Swish.Commands
+  (
+    swishInput
+  )
+
+import Control.Monad.State.Lazy
+  (get)
 
 createGraph :: RDFGraph
 createGraph = emptyRDFGraph
@@ -43,6 +52,9 @@ main = putStrLn "hello, swish!"
 importFile :: IO String
 importFile = do
       contents <- readFile "../inputs/bar.ttl"
+      let j = swishInput (Just contents)
+      -- putStrLn (return j)
+      putStrLn contents
       -- res <- parseInSwish contents
       -- case contents of
       --   Left err -> error "Can't parse the file."
@@ -50,6 +62,9 @@ importFile = do
       --       let o = formatGraphAsText rdfGraph
       --       print o
       return contents
+
+-- fileToLabel :: String
+-- fileToLabel s = toRDFLabel s
 
 -- parseInSwish :: String -> ParseResult
 -- parseInSwish turtleString = parseTurtle (TL.pack turtleString) Nothing
