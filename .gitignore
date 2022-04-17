@@ -5,8 +5,6 @@
 
 # compilation stuff
 ./dist-newstyle/
-Lexer.hs
-Parser.hs
 Main
 Stql
 
