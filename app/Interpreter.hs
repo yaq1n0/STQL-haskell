@@ -3,7 +3,7 @@ import System.IO
 import System.IO.Error
 import qualified Lexer as L
 import qualified Parser as P
-import qualified AST
+import qualified AST as AST
 import qualified Evaluator as E
 import Codec.Binary.UTF8.String (encode)
 
