@@ -40,7 +40,10 @@ import Swish.Commands
   )
 
 import Control.Monad.State.Lazy
-  (get)
+  (
+    get,
+    return
+  )
 
 createGraph :: RDFGraph
 createGraph = emptyRDFGraph
