@@ -8,6 +8,7 @@ import Swish.Commands (swishInput)
 import Control.Monad.State.Lazy (get, return, liftIO)
 import Data.List (isPrefixOf, isSuffixOf)
 import Data.Maybe (fromJust)
+import Network.URI (URI, parseURI)
 
 createGraph :: RDFGraph
 createGraph = emptyRDFGraph
@@ -22,12 +23,13 @@ importFile = do
       -- putStrLn contents
 
       -- printGraph $ graphFromFileString contents
+      let base = getBase contents
       putStrLn "BASE: "
-      print (getBase contents)
-      case (parseIntoTurtle contents) of
-                                  Left err -> putStrLn "Can't parse the file."
-                                  Right rdfGraph -> do
-                                      printGraph rdfGraph
+      print base
+      case (parseIntoTurtle contents base) of
+          Left err -> putStrLn "Can't parse the file."
+          Right rdfGraph -> do
+              printGraph rdfGraph
       
       putStrLn "\n"
       let printComment = "RETURNING: " ++ contents
@@ -36,37 +38,34 @@ importFile = do
 -- graphFromFileString :: String -> RDFGraph
 -- graphFromFileString contents = do
 
+-- parse input into the turtle format
+parseIntoTurtle :: String -> Maybe URI -> ParseResult
+parseIntoTurtle contents base = parseTurtle (strToLText contents) base
+
 -- get the base value from a turtle file 
-getBase :: String -> Maybe String
-getBase content = do
-            let bases = filter isBase $ lines content
-            
-            -- let bases = matchAllBases content
+getBase :: String -> Maybe URI
+getBase contents = do
+            let prefix = "@base <"
+            let suffix = "> ."
+
+            let bases = filter (isBase prefix suffix) $ lines contents
             
             case bases of
               [] -> Nothing
-              [a] -> Just (extractBase a)
+              [a] -> Just (toURI $ extractBase a prefix suffix)
               (a:as) -> error "The document contains too many @base properties (more than one)"
+      -- checks whether the provided text is a base property
+      where isBase prefix suffix c = prefix `isPrefixOf` c && suffix `isSuffixOf` c
+            toURI a = fromJust $ parseURI a
 
 -- extract the actual base string
-extractBase :: String -> String
-extractBase base = do
-            let maybesP = T.stripPrefix (strToText "@base ") (strToText base)
+extractBase :: String -> String -> String -> String
+extractBase base prefix suffix = do
+            let maybesP = T.stripPrefix (strToText prefix) (strToText base)
             let sP = fromJust maybesP
-            let maybesS = T.stripSuffix (strToText " .") sP
+            let maybesS = T.stripSuffix (strToText suffix) sP
             let sS = fromJust maybesS
             textToStr sS
-
-isBase :: String -> Bool
-isBase c = "@base " `isPrefixOf` c && " ." `isSuffixOf` c
-
--- matchAllBases :: String -> [String]
--- matchAllBases c = getAllTextMatches $ c =~ "(^@base)(.*)( \\.$)"
--- "(?<=@base )(.*)(?= .)")
-
--- parse input into the turtle format
-parseIntoTurtle :: String -> ParseResult
-parseIntoTurtle turtleString = parseTurtle (strToLText turtleString) Nothing
 
 -- print Graph into output (with newlines)
 printGraph :: RDFGraph -> IO ()

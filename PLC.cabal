@@ -65,7 +65,8 @@ executable PLC
                       utf8-string,
                       mtl,
                       text,
-                      array
+                      array,
+                      network-uri
 
     build-tools:      alex,
                       happy,
