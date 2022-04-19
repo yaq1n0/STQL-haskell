@@ -2,7 +2,7 @@ import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
 import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
 import qualified Data.Text.Lazy as TL (Text, pack, unpack)
 import qualified Data.Text as T (Text, pack, unpack, stripPrefix, stripSuffix)
-import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, emptyRDFGraph, toRDFLabel, nodes, getNamespaces)
+import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel)
 import Swish.RDF.Formatter.Turtle (formatGraphAsText)
 import Swish.Commands (swishInput)
 import Swish.QName (QName)
@@ -13,7 +13,7 @@ import Control.Monad.State.Lazy (get, return, liftIO, execState, forever)
 import Control.Monad.Reader.Class (ask)
 import Data.List (isPrefixOf, isSuffixOf)
 import Data.Maybe (fromJust)
-import Data.Set (Set)
+import qualified Data.Set as S (Set, filter, size)
 import Network.URI (URI, parseURI)
 
 main :: IO ()
@@ -41,7 +41,12 @@ importFile = do
               printArcs rdfGraph
               putStrLn "\nGRAPH:"
               printGraph rdfGraph
-              
+              putStrLn "\nFILTERED BY OBJECT:"
+              let tempLabel = "<http://www.cw.org/prob4B>"
+              let filtered = S.filter (fil tempLabel) (getArcs rdfGraph)
+              print filtered
+              print $ S.size (getArcs rdfGraph)
+              printGraph $ filterByObj tempLabel rdfGraph
       
       putStrLn "\n"
       let printComment = "RETURNING: " ++ contents
@@ -57,7 +62,7 @@ getBase contents = do
             let prefix = "@base <"
             let suffix = "> ."
 
-            let bases = filter (isBase prefix suffix) $ lines contents
+            let bases = Prelude.filter (isBase prefix suffix) $ lines contents
             
             case bases of
               [] -> Nothing
@@ -79,6 +84,29 @@ extractBase base prefix suffix = do
 createGraph :: RDFGraph
 createGraph = emptyRDFGraph
 
+--------- FILTERING ----------
+filterByObj :: String -> RDFGraph -> RDFGraph
+filterByObj o graph = extract f graph
+        where f arc = arcSubj arc == toRDFLabel o
+
+fil o arc = labelToString (arcSubj arc) == o
+
+mine :: Arc RDFLabel
+mine = arc (toRDFLabel "<http://www.cw.org/subjectA>") (toRDFLabel "<http://www.cw.org/predicateA>") (toRDFLabel "<http://www.cw.org/objectA>")
+
+labelToString :: RDFLabel -> String
+labelToString lb = show lb
+
+fst :: (a, b, c) -> a
+fst (a, _, _) = a
+
+thd :: (a, b, c) -> c
+thd (_, _, c) = c
+
+-- filterBySubj = 
+------------------------------
+
+---------- PRINTING ----------
 printState :: SwishState -> String
 printState s = "format: " ++ show (format s) ++ ", base: " ++ show (base s) ++ ", graph: " ++ show (graph s) ++ ", rules: " ++ show (rules s) ++ ", infomsg: " ++ show (infomsg s) ++ ", errormsg: " ++ show (errormsg s) ++ ", exitcode: " ++ show (exitcode s)
 
@@ -98,6 +126,9 @@ printArcs graph = print $ getArcs graph
 printGraph :: RDFGraph -> IO ()
 printGraph g = putStrLn (textToStr $ formatGraphAsText g)
 
+------------------------------
+
+--------- CONVERTING ---------
 -- changes String into Text
 strToText :: String -> T.Text
 strToText c = T.pack c
@@ -113,6 +144,8 @@ strToLText c = TL.pack c
 -- changes Lazy Text into String
 lTextToStr :: TL.Text -> String
 lTextToStr c = TL.unpack c
+
+------------------------------
 
 -- graphFromFileString :: String -> RDFGraph
 -- graphFromFileString contents = do
