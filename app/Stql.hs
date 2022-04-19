@@ -42,11 +42,11 @@ importFile = do
               putStrLn "\nGRAPH:"
               printGraph rdfGraph
               putStrLn "\nFILTERED BY OBJECT:"
-              let tempLabel = "<http://www.cw.org/prob4B>"
+              let tempLabel = fromJust $ parseURI "http://www.cw.org/prob4B"
               let filtered = S.filter (fil tempLabel) (getArcs rdfGraph)
               print filtered
-              print $ S.size (getArcs rdfGraph)
-              printGraph $ filterByObj tempLabel rdfGraph
+              -- print $ S.size (getArcs rdfGraph)
+              -- printGraph $ filterByObj tempLabel rdfGraph
       
       putStrLn "\n"
       let printComment = "RETURNING: " ++ contents
@@ -89,13 +89,14 @@ filterByObj :: String -> RDFGraph -> RDFGraph
 filterByObj o graph = extract f graph
         where f arc = arcSubj arc == toRDFLabel o
 
-fil o arc = labelToString (arcSubj arc) == o
+fil o arc = arcSubj arc == (fromJust $ parseURI o)
+-- (fromJust $ labelToString (arcSubj arc))
 
 mine :: Arc RDFLabel
 mine = arc (toRDFLabel "<http://www.cw.org/subjectA>") (toRDFLabel "<http://www.cw.org/predicateA>") (toRDFLabel "<http://www.cw.org/objectA>")
 
-labelToString :: RDFLabel -> String
-labelToString lb = show lb
+labelToString :: RDFLabel -> Maybe URI
+labelToString lb = fromRDFLabel lb
 
 fst :: (a, b, c) -> a
 fst (a, _, _) = a
