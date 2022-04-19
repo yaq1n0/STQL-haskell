@@ -1,12 +1,12 @@
 # Functions to write for parsing turtle files
 - [ ] import file from command line
-    - [ ] import file in hardcoded form
+    - [x] import file in hardcoded form
 - [x] import text into turtle graph
 - [ ] be able to manipulate the graph
 - [ ] save graph in state maybe?
 - [ ] import multiple graphs into state
 - [ ] merge graphs (be aware about the clashes; **graphmatch, swishmerge**)
-- [ ] filter graphs (select base, prefixes, subject, predicate, object; **fromrdftriple**)
+- [ ] filter graphs (select base, prefixes, subject, predicate, object; **fromrdftriple**, arcSubj, arcPred, arcObj)
     - [ ] displays all nodes with subjects/objects satisfying a given filter (**allnodes**)
     - [ ] write compare subject,pred, obj functions (**fmapnsgraph**)
 - [ ] create new out and out file
