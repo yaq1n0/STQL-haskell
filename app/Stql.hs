@@ -1,19 +1,25 @@
+-- IMPORTS
+  -- HASKELL BASE IMPORTS
+import Data.List (isPrefixOf, isSuffixOf)
+import Data.Maybe (fromJust)
+import qualified Data.Set as S (Set, filter, size)
+  -- SWISH IMPORTS
 import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
 import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
-import qualified Data.Text.Lazy as TL (Text, pack, unpack)
-import qualified Data.Text as T (Text, pack, unpack, stripPrefix, stripSuffix)
 import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel)
 import Swish.RDF.Formatter.Turtle (formatGraphAsText)
 import Swish.Commands (swishInput)
 import Swish.QName (QName)
 import Swish.RDF.Ruleset (RDFRuleMap, RDFRulesetMap)
 import Swish.GraphClass (ArcSet, LDGraph, getArcs)
+  -- MTL IMPORTS
 import Control.Monad.State as CMS (get, put, runStateT, evalStateT, StateT)
 import Control.Monad.State.Lazy (get, return, liftIO, execState, forever)
 import Control.Monad.Reader.Class (ask)
-import Data.List (isPrefixOf, isSuffixOf)
-import Data.Maybe (fromJust)
-import qualified Data.Set as S (Set, filter, size)
+  -- TEXT IMPORTS
+import qualified Data.Text.Lazy as TL (Text, pack, unpack)
+import qualified Data.Text as T (Text, pack, unpack, stripPrefix, stripSuffix)
+  -- NETWORK IMPORTS
 import Network.URI (URI, parseURI)
 
 main :: IO ()
@@ -42,9 +48,9 @@ importFile = do
               putStrLn "\nGRAPH:"
               printGraph rdfGraph
               putStrLn "\nFILTERED BY OBJECT:"
-              let tempLabel = fromJust $ parseURI "http://www.cw.org/prob4B"
-              let filtered = S.filter (fil tempLabel) (getArcs rdfGraph)
-              print filtered
+              -- let tempLabel = fromJust $ parseURI "http://www.cw.org/prob4B"
+              -- let filtered = S.filter (fil tempLabel) (getArcs rdfGraph)
+              -- print filtered
               -- print $ S.size (getArcs rdfGraph)
               -- printGraph $ filterByObj tempLabel rdfGraph
       
