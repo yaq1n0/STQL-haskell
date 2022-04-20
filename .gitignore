@@ -8,6 +8,8 @@ Main
 Stql
 
 # Haskell-specific files
+dist
+dist-*
 cabal-dev
 *.o
 *.hi
@@ -28,3 +30,4 @@ cabal.sandbox.config
 cabal.project.local
 cabal.project.local~
 .HTF/
+.ghc.environment.*
