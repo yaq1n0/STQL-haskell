@@ -6,7 +6,7 @@ import qualified Data.Set as S (Set, filter, size, elemAt, toList, fromList)
   -- SWISH IMPORTS
 import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
 import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
-import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels)
+import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels)
 import Swish.RDF.Formatter.Turtle (formatGraphAsText)
 import Swish.Commands (swishInput)
 import Swish.QName (QName, getQNameURI, getNamespace, getLocalName, getQNameURI)
@@ -30,61 +30,18 @@ main = print $ printState emptyState
 -- Swish version
 importFile :: IO String
 importFile = do
-      contents <- readFile "../inputs/bar.ttl"
+      contents <- readFile "../inputs/foo.ttl"
       -- putStrLn contents
 
-      -- printGraph $ graphFromFileString contents
       let base = getBase contents
       putStrLn "BASE: "
       print base
       case (parseIntoTurtle contents base) of
           Left err -> putStrLn "Can't parse the file."
           Right rdfGraph -> do
-              putStrLn "\nNAMESPACE:"
-              print $ _prefixes rdfGraph
-              putStrLn "\nNODES:"
-              print $ _nodes rdfGraph
-              putStrLn "\nARCS:"
-              print $ _arcs rdfGraph
-              putStrLn "\nGRAPH:"
-              printGraph rdfGraph
-              putStrLn "\nLABELS:"
-              print $ _labels rdfGraph
+              printPropsOfGraph rdfGraph
+              printFilteringTests rdfGraph
               
-              putStrLn "\nFILTERED BY OBJECT:"
-              putStrLn "\nFirst arc from graph:"
-              let eh = S.elemAt 2 (getArcs rdfGraph)
-              print eh
-              putStrLn "\nTestArc:"
-              let testArc = arc (strToURIRDFLabel "http://www.cw.org/subjectA") (strToURIRDFLabel "http://www.cw.org/predicateA") (strToURIRDFLabel "http://www.cw.org/objectA")
-              print testArc
-              putStrLn "\nTestLabels:"
-              let testSubjLb = "http://www.cw.org/prob4B"
-              let testPredLb = "http://www.cw.org/testPredB"
-              let testObjLb = show $ rdfLabelToURI $ arcObj testArc
-              print testSubjLb
-              print testPredLb
-              print testObjLb
-
-              -- custom-written filtering
-              putStrLn "\nCustom-written filtering:"
-              let filtered = S.filter (fil testArc) (getArcs rdfGraph)
-              let lol = update (S.filter (fil testArc)) rdfGraph
-              print filtered
-
-              putStrLn "\nEquality between test and graph arc?:"
-              print $ fil testArc eh
-              
-              putStrLn "\n\nEXPANDED:"
-              let expanded = expandTriples rdfGraph
-              printGraph expanded
-              -- printGraph rdfGraph
-
-              putStrLn "\nFILTERED BY OBJECT WITH EXTRACT:"
-              printGraph $ filterBySubj testSubjLb expanded
-              printGraph $ filterByPred testPredLb expanded
-              printGraph $ filterByObj testObjLb expanded
-
       -- let printComment = "RETURNING: " ++ contents
       -- return printComment
       return ""
@@ -121,15 +78,31 @@ extractBase base prefix suffix = do
 createGraph :: RDFGraph
 createGraph = emptyRDFGraph
 
--- TODO: Fails at foo.ttl and fooProb5.ttl
+--------- EXPANDING ----------
 expandTriples :: NSGraph RDFLabel -> NSGraph RDFLabel
-expandTriples graph = fmapNSGraph conv graph
+expandTriples graph = fmapNSGraph convert graph
     where
-      toQName a = fromJust $ fromRDFLabel a
-      toLabel a = toRDFLabel a
-      -- get qnames of labels inside the graph 
       -- QName = Namespace + Local Name
-      conv label = toLabel $ getQNameURI $ toQName label
+      -- literals can be strings, numbers, or true/false
+      convert a = case (fromRDFLabel a :: Maybe QName) of
+                            Nothing -> convertToLiteral a graph
+                            Just x -> convertToURI x
+
+-- get qnames of labels inside the graph
+convertToURI :: QName -> RDFLabel
+convertToURI lb = toRDFLabel $ getQNameURI lb
+
+-- check if the value is an object. If so, it can be a literal or URI.
+convertToLiteral :: RDFLabel -> NSGraph RDFLabel -> RDFLabel
+convertToLiteral lb graph = case isLbInGraphObjects lb graph of
+                        True -> case (fromRDFLabel lb) of
+                                      Nothing -> error "Couldn't parse literal."
+                                      Just x -> x
+                        False -> error "The provided arc label is not a URI, but can't be a literal. Only object labels can be converted to a literal."
+
+isLbInGraphObjects :: RDFLabel -> NSGraph RDFLabel -> Bool
+isLbInGraphObjects match graph = or [match == arcObj arc | arc <- S.toList $ getArcs graph]
+------------------------------  
 
 --------- FILTERING ----------
 filterBySubj :: String -> RDFGraph -> RDFGraph
@@ -140,9 +113,9 @@ filterByPred :: String -> RDFGraph -> RDFGraph
 filterByPred pred graph = extract s graph
             where s arc = arcPred arc == strToURIRDFLabel pred
 
-filterByObj :: String -> RDFGraph -> RDFGraph
+filterByObj :: (Swish.RDF.Graph.ToRDFLabel a) => a -> RDFGraph -> RDFGraph
 filterByObj obj graph = extract s graph
-            where s arc = arcObj arc == strToURIRDFLabel obj
+            where s arc = arcObj arc == toRDFLabel obj
 
 fil :: Arc RDFLabel -> Arc RDFLabel -> Bool
 fil o arc = arc == o
@@ -158,7 +131,7 @@ printGraph g = putStrLn (textToStr $ formatGraphAsText g)
 
 -- print the properties of label subject (used for testing)
 printSubjPropsOfArc :: Arc RDFLabel -> IO ()
-printSubjPropsOfArc arc = do
+printSubjPropsOfArc arc = printWrapper "ARC PROPERTIES" $ do
                   let subj = arcSubj arc
                   let qname = fromJust $ fromRDFLabel $ subj
                   putStrLn "\nQname:"
@@ -172,6 +145,77 @@ printSubjPropsOfArc arc = do
                   putStrLn "\nScoped name:"
                   print $ getScopedName subj
 
+printPropsOfGraph :: NSGraph RDFLabel -> IO ()
+printPropsOfGraph rdfGraph = printWrapper "GRAPH PROPERTIES" $ do
+                  putStrLn "NAMESPACE:"
+                  print $ _prefixes rdfGraph
+                  -- putStrLn "\nNODES:"
+                  -- print $ _nodes rdfGraph
+                  putStrLn "\nARCS:"
+                  print $ _arcs rdfGraph
+                  -- putStrLn "\nGRAPH:"
+                  -- printGraph rdfGraph
+                  -- putStrLn "\nLABELS:"
+                  -- print $ _labels rdfGraph
+
+printFilteringTests :: NSGraph RDFLabel -> IO ()
+printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
+                    putStrLn "FILTERED BY OBJECT:"
+                    putStrLn "First arc from graph:"
+                    let eh = S.elemAt 2 (getArcs rdfGraph)
+                    print eh
+                    putStrLn "\nTestArc:"
+                    let testArc = arc (strToURIRDFLabel "http://www.cw.org/subjectA") (strToURIRDFLabel "http://www.cw.org/predicateA") (strToURIRDFLabel "http://www.cw.org/objectA")
+                    print testArc
+                    putStrLn "\nTestLabels:"
+                    let testSubjLb = "http://www.cw.org/prob4B"
+                    let testPredLb = "http://www.cw.org/testPredB"
+                    let testObjLb = show $ rdfLabelToURI $ arcObj testArc
+                    print testSubjLb
+                    print testPredLb
+                    print testObjLb
+                    -- printGraph $ filterBySubj testSubjLb expanded
+                    -- printGraph $ filterByPred testPredLb expanded
+                    -- printGraph $ filterByObj testObjLb expanded
+
+                    -- custom-written filtering
+                    putStrLn "\nCustom-written filtering:"
+                    let filtered = S.filter (fil testArc) (getArcs rdfGraph)
+                    let lol = update (S.filter (fil testArc)) rdfGraph
+                    print filtered
+
+                    putStrLn "\nEquality between test and graph arc?:"
+                    print $ fil testArc eh
+                    
+                    putStrLn "\n\nEXPANDED:"
+                    let expanded = expandTriples rdfGraph
+                    printGraph expanded
+
+                    putStrLn "\nFILTERED BY OBJECT WITH EXTRACT:"
+                    let problem2Subj = "http://www.cw.org/#problem2"
+                    let problem2Obj = True
+                    let problem3Pred1 = "http://www.cw.org/problem3/#predicate1"
+                    let problem3Pred2 = "http://www.cw.org/problem3/#predicate2"
+                    let problem3Pred3 = "http://www.cw.org/problem3/#predicate3"
+                    putStrLn "PROBLEM 2"
+                    putStrLn "1)"
+                    printGraph $ filterBySubj problem2Subj expanded
+                    putStrLn "2)"
+                    printGraph $ filterByObj problem2Obj expanded
+                    putStrLn "\nPROBLEM 3"
+                    putStrLn "1)"
+                    printGraph $ filterByPred problem3Pred1 expanded
+                    putStrLn "2)"
+                    printGraph $ filterByPred problem3Pred2 expanded
+                    putStrLn "3)"
+                    printGraph $ filterByPred problem3Pred3 expanded
+
+printWrapper :: String -> IO a -> IO ()
+printWrapper msg io = do
+                putStrLn ("--------- " ++ msg ++ "----------")
+                io
+                putStrLn "-----------------------------------"
+                putStrLn ""
 ------------------------------
 
 ------ GRAPH PROPERTIES ------
