@@ -2,16 +2,17 @@
   -- HASKELL BASE IMPORTS
 import Data.List (isPrefixOf, isSuffixOf)
 import Data.Maybe (fromJust)
-import qualified Data.Set as S (Set, filter, size)
+import qualified Data.Set as S (Set, filter, size, elemAt, toList, fromList)
   -- SWISH IMPORTS
 import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
 import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
-import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel)
+import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels)
 import Swish.RDF.Formatter.Turtle (formatGraphAsText)
 import Swish.Commands (swishInput)
-import Swish.QName (QName)
+import Swish.QName (QName, getQNameURI, getNamespace, getLocalName, getQNameURI)
 import Swish.RDF.Ruleset (RDFRuleMap, RDFRulesetMap)
-import Swish.GraphClass (ArcSet, LDGraph, getArcs)
+import Swish.GraphClass (ArcSet, LDGraph, setArcs, getArcs, arcLabels, arcToTriple)
+import Swish.Namespace (getScopeNamespace, makeURIScopedName, getScopeLocal, getScopePrefix, getScopeURI, getQName, getScopedNameURI)
   -- MTL IMPORTS
 import Control.Monad.State as CMS (get, put, runStateT, evalStateT, StateT)
 import Control.Monad.State.Lazy (get, return, liftIO, execState, forever)
@@ -40,23 +41,52 @@ importFile = do
           Left err -> putStrLn "Can't parse the file."
           Right rdfGraph -> do
               putStrLn "\nNAMESPACE:"
-              printPrefixes rdfGraph
+              print $ _prefixes rdfGraph
               putStrLn "\nNODES:"
-              printNodes rdfGraph
+              print $ _nodes rdfGraph
               putStrLn "\nARCS:"
-              printArcs rdfGraph
+              print $ _arcs rdfGraph
               putStrLn "\nGRAPH:"
               printGraph rdfGraph
+              putStrLn "\nLABELS:"
+              print $ _labels rdfGraph
               putStrLn "\nFILTERED BY OBJECT:"
-              -- let tempLabel = fromJust $ parseURI "http://www.cw.org/prob4B"
-              -- let filtered = S.filter (fil tempLabel) (getArcs rdfGraph)
-              -- print filtered
+              let tempLabel = "http://www.cw.org/prob4B"
+              let subFilterProp = toRDFLabel $ fromJust $ parseURI tempLabel
+              let filtered = S.filter (fil mine) (getArcs rdfGraph)
+              print filtered
+              let lol = update (S.filter (fil mine)) rdfGraph
+              putStrLn "\nFirst:"
+              let eh = S.elemAt 1 (getArcs rdfGraph)
+              print eh
+              -- expands a namespace+uri
+              putStrLn "\nQname:"
+              let qname = fromJust $ fromRDFLabel $ arcSubj eh
+              print qname
+              let qnameURI = getQNameURI $ qname
+              putStrLn "\nNamespace:"
+              print $ getNamespace qname
+              putStrLn "\nLocal name:"
+              print $ getLocalName qname
+              putStrLn "\nMine:"
+              print mine
+              putStrLn "\nEquality?:"
+              print $ fil mine eh
+              putStrLn "\nExpanded"
+              let expanded = expandTriples rdfGraph
+              printGraph expanded
+              -- printGraph rdfGraph
+              
+             
               -- print $ S.size (getArcs rdfGraph)
+              -- putStrLn "\nFILTERED BY OBJECT WITH EXTRACT:"
               -- printGraph $ filterByObj tempLabel rdfGraph
+              -- filterByObj tempLabel rdfGraph
       
       putStrLn "\n"
-      let printComment = "RETURNING: " ++ contents
-      return printComment
+      -- let printComment = "RETURNING: " ++ contents
+      -- return printComment
+      return ""
 
 -- parse input into the turtle format
 parseIntoTurtle :: String -> Maybe URI -> ParseResult
@@ -90,16 +120,49 @@ extractBase base prefix suffix = do
 createGraph :: RDFGraph
 createGraph = emptyRDFGraph
 
---------- FILTERING ----------
-filterByObj :: String -> RDFGraph -> RDFGraph
-filterByObj o graph = extract f graph
-        where f arc = arcSubj arc == toRDFLabel o
+-- expandTriples :: (Applicative f) => NSGraph RDFLabel -> f (NSGraph RDFLabel)
+expandTriples graph = fmapNSGraph (conv) graph
+              where
+                ns = S.toList $ _nodes graph
 
-fil o arc = arcSubj arc == (fromJust $ parseURI o)
+toQName a = fromJust $ fromRDFLabel a
+toLabel a = toRDFLabel a
+
+f label = pure label <*> conv
+
+conv :: RDFLabel -> RDFLabel
+conv label = toLabel $ getQNameURI $ toQName label
+
+-- fm :: (RDFLabel -> RDFLabel) -> NSGraph RDFLabel -> NSGraph RDFLabel
+-- fm c g = setArcs g (S.fromList [arc (c a) (c b) (c c) | a <- S.toList $ getArcs g, (a, b, c) <- arcToTriple a])
+-- data CB l = NSGraph l
+
+-- NSGraph is our Functor; we need to apply a function to a value inside it
+-- instance Applicative NSGraph where
+  -- pure l = NSGraph l
+  -- f <*> graph = [f l | a <- S.toList $ getArcs graph, l <- arcLabels a]
+  -- pure l = toLabel $ getQNameURI $ toQName label
+  -- f <*> graph = [f l | l <- S.toList $ _labels graph]
+
+-- ap :: (RDFLabel -> RDFLabel) -> NSGraph -> NSGraph
+-- ap f g = 
+
+--------- FILTERING ----------
+-- filterByObj :: String -> RDFGraph -> RDFGraph
+-- filterByObj o graph = extract f graph
+filterByObj o graph = getArcs graph
+-- doesnt filter correctly; no results
+
+-- f arc = arcSubj arc == toRDFLabel "<http://www.cw.org/prob4B>"
+
+fil :: Arc RDFLabel -> Arc RDFLabel -> Bool
+fil o arc = arc == o
 -- (fromJust $ labelToString (arcSubj arc))
 
 mine :: Arc RDFLabel
-mine = arc (toRDFLabel "<http://www.cw.org/subjectA>") (toRDFLabel "<http://www.cw.org/predicateA>") (toRDFLabel "<http://www.cw.org/objectA>")
+mine = arc (toRDFLabel $ fromJust $ parseURI "http://www.cw.org/subjectA") (toRDFLabel $ fromJust $ parseURI "http://www.cw.org/predicateA") (toRDFLabel $ fromJust $ parseURI "http://www.cw.org/objectA")
+
+-- Namespace + Local Name = QName
 
 labelToString :: RDFLabel -> Maybe URI
 labelToString lb = fromRDFLabel lb
@@ -117,17 +180,21 @@ thd (_, _, c) = c
 printState :: SwishState -> String
 printState s = "format: " ++ show (format s) ++ ", base: " ++ show (base s) ++ ", graph: " ++ show (graph s) ++ ", rules: " ++ show (rules s) ++ ", infomsg: " ++ show (infomsg s) ++ ", errormsg: " ++ show (errormsg s) ++ ", exitcode: " ++ show (exitcode s)
 
+-- print labels of a graph
+_labels :: (LDGraph lg lb, Ord lb) => lg lb -> S.Set lb
+_labels graph = labels graph
+
 -- print prefixes of a graph (such as p, s, and t)
-printPrefixes :: NSGraph lb -> IO ()
-printPrefixes graph = print $ getNamespaces graph
+_prefixes :: NSGraph lb -> NamespaceMap
+_prefixes graph = getNamespaces graph
 
 -- print nodes of a graph (all the triple elements of all triples, but without predicates)
-printNodes :: (Show lb, Swish.GraphClass.LDGraph lg lb, Ord lb) => lg lb -> IO ()
-printNodes graph = print $ nodes graph
+_nodes :: (LDGraph lg lb, Ord lb) => lg lb -> S.Set lb
+_nodes graph = nodes graph
 
 -- print arcs of a graph (all the triples of a graph)
-printArcs :: (Show lb, LDGraph lg lb) => lg lb -> IO ()
-printArcs graph = print $ getArcs graph 
+_arcs :: LDGraph lg lb => lg lb -> ArcSet lb
+_arcs graph = getArcs graph
 
 -- print Graph into output (with newlines)
 printGraph :: RDFGraph -> IO ()
@@ -171,7 +238,7 @@ lTextToStr c = TL.unpack c
 -- fileToLabel :: String
 -- fileToLabel s = toRDFLabel s
 
--------------------------------------------------- STATE --------------------------------------------------
+----------- STATE ------------
 -- main = CMS.evalStateT setState emptyState
 -- CMS.evalStateT (forever createState) emptyState
 
