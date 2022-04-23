@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 -- IMPORTS
   -- HASKELL BASE IMPORTS
 import Data.List (isPrefixOf, isSuffixOf)
@@ -6,8 +9,8 @@ import qualified Data.Set as S (Set, filter, size, elemAt, toList, fromList)
   -- SWISH IMPORTS
 import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
 import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
-import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels)
-import Swish.RDF.Formatter.Turtle (formatGraphAsText)
+import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, toRDFGraph, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels)
+import Swish.RDF.Formatter.Turtle (formatGraphAsText, formatGraphIndent, formatGraphAsBuilder)
 import Swish.Commands (swishInput)
 import Swish.QName (QName, getQNameURI, getNamespace, getLocalName, getQNameURI)
 import Swish.RDF.Ruleset (RDFRuleMap, RDFRulesetMap)
@@ -20,8 +23,25 @@ import Control.Monad.Reader.Class (ask)
   -- TEXT IMPORTS
 import qualified Data.Text.Lazy as TL (Text, pack, unpack)
 import qualified Data.Text as T (Text, pack, unpack, stripPrefix, stripSuffix)
+import Data.List (nub, (\\))
   -- NETWORK IMPORTS
 import Network.URI (URI, parseURI)
+
+data TripleLabelCatgs = Subj | Pred | Obj
+data Combinator = And | Or
+type LabelTypeTuple = (TripleLabelCatgs, RDFLabel)
+-- data LabelType a = URI a | String a | Int a | Bool a
+class    LabelType a      where valToLabel :: a -> RDFLabel
+instance LabelType Bool   where valToLabel = toRDFLabel
+instance LabelType URI    where valToLabel = toRDFLabel
+instance LabelType String where valToLabel = strToLabel
+instance LabelType Int where valToLabel = toRDFLabel
+instance LabelType Integer where valToLabel = toRDFLabel
+-- instance (Num a, Eq a, ToRDFLabel a) => LabelType a where valToLabel = toRDFLabel
+-- instance LabelType Num Int where valToLabel = toRDFLabel
+
+-- instance LabelType Double where valToLabel = toRDFLabel
+-- instance LabelType Float where valToLabel = toRDFLabel
 
 main :: IO ()
 -- main = putStrLn "hello, swish!"
@@ -39,7 +59,7 @@ importFile = do
       case (parseIntoTurtle contents base) of
           Left err -> putStrLn "Can't parse the file."
           Right rdfGraph -> do
-              printPropsOfGraph rdfGraph
+              -- printLabelTypesOfGraph rdfGraph
               printFilteringTests rdfGraph
               
       -- let printComment = "RETURNING: " ++ contents
@@ -62,7 +82,7 @@ getBase contents = do
               [] -> Nothing
               [a] -> Just (toURI $ extractBase a prefix suffix)
               (a:as) -> error "The document contains too many @base properties (more than one)"
-      -- checks whether the provided text is a base property
+      -- checks whether the provided text is a base LabelTypeerty
       where isBase prefix suffix c = prefix `isPrefixOf` c && suffix `isSuffixOf` c
             toURI a = fromJust $ parseURI a
 
@@ -86,11 +106,8 @@ expandTriples graph = fmapNSGraph convert graph
       -- literals can be strings, numbers, or true/false
       convert a = case (fromRDFLabel a :: Maybe QName) of
                             Nothing -> convertToLiteral a graph
-                            Just x -> convertToURI x
-
--- get qnames of labels inside the graph
-convertToURI :: QName -> RDFLabel
-convertToURI lb = toRDFLabel $ getQNameURI lb
+                            -- get qnames of labels inside the graph
+                            Just x -> qnameToURILabel x
 
 -- check if the value is an object. If so, it can be a literal or URI.
 convertToLiteral :: RDFLabel -> NSGraph RDFLabel -> RDFLabel
@@ -102,20 +119,36 @@ convertToLiteral lb graph = case isLbInGraphObjects lb graph of
 
 isLbInGraphObjects :: RDFLabel -> NSGraph RDFLabel -> Bool
 isLbInGraphObjects match graph = or [match == arcObj arc | arc <- S.toList $ getArcs graph]
-------------------------------  
+------------------------------
 
 --------- FILTERING ----------
-filterBySubj :: String -> RDFGraph -> RDFGraph
+filterBySubj :: RDFLabel -> RDFGraph -> RDFGraph
 filterBySubj subj graph = extract s graph
-            where s arc = arcSubj arc == strToURIRDFLabel subj
+            where s arc = arcSubj arc == allowURIOnly subj
 
-filterByPred :: String -> RDFGraph -> RDFGraph
+filterByPred :: RDFLabel -> RDFGraph -> RDFGraph
 filterByPred pred graph = extract s graph
-            where s arc = arcPred arc == strToURIRDFLabel pred
+            where s arc = arcPred arc == allowURIOnly pred
 
-filterByObj :: (Swish.RDF.Graph.ToRDFLabel a) => a -> RDFGraph -> RDFGraph
+filterByObj :: RDFLabel -> RDFGraph -> RDFGraph
 filterByObj obj graph = extract s graph
             where s arc = arcObj arc == toRDFLabel obj
+
+-- TODO: doesn't preserve graph prefixes yet
+filterMultiple :: [LabelTypeTuple] -> Combinator -> RDFGraph -> RDFGraph
+filterMultiple as c g = toRDFGraph $ S.fromList $ filterIterateGraphs c [handleFilterLabelTypes labelCat lb g | (labelCat, lb) <- as]
+
+handleFilterLabelTypes :: TripleLabelCatgs -> RDFLabel -> RDFGraph -> RDFGraph
+handleFilterLabelTypes (Subj) lbt g = filterBySubj lbt g
+handleFilterLabelTypes (Pred) lbt g = filterByPred lbt g
+handleFilterLabelTypes (Obj) lbt g = filterByObj lbt g
+
+filterIterateGraphs :: Combinator -> [RDFGraph] -> [Arc RDFLabel]
+filterIterateGraphs (And) gs = getDups [arc | g <- gs, arc <- S.toList $ getArcs g]
+filterIterateGraphs (Or) gs = error "lol"
+
+getDups :: [Arc RDFLabel] -> [Arc RDFLabel]
+getDups xs = xs \\ nub xs
 
 fil :: Arc RDFLabel -> Arc RDFLabel -> Bool
 fil o arc = arc == o
@@ -129,9 +162,12 @@ printState s = "format: " ++ show (format s) ++ ", base: " ++ show (base s) ++ "
 printGraph :: RDFGraph -> IO ()
 printGraph g = putStrLn (textToStr $ formatGraphAsText g)
 
--- print the properties of label subject (used for testing)
-printSubjPropsOfArc :: Arc RDFLabel -> IO ()
-printSubjPropsOfArc arc = printWrapper "ARC PROPERTIES" $ do
+-- TODO: print graph out with prefixes expanded
+-- printGraphWPrefixes g = formatGraphIndent (formatGraphAsBuilder g) True g
+
+-- print the Properties of label subject (used for testing)
+printSubjLabelTypesOfArc :: Arc RDFLabel -> IO ()
+printSubjLabelTypesOfArc arc = printWrapper "ARC PROPERTIES" $ do
                   let subj = arcSubj arc
                   let qname = fromJust $ fromRDFLabel $ subj
                   putStrLn "\nQname:"
@@ -145,8 +181,8 @@ printSubjPropsOfArc arc = printWrapper "ARC PROPERTIES" $ do
                   putStrLn "\nScoped name:"
                   print $ getScopedName subj
 
-printPropsOfGraph :: NSGraph RDFLabel -> IO ()
-printPropsOfGraph rdfGraph = printWrapper "GRAPH PROPERTIES" $ do
+printLabelTypesOfGraph :: NSGraph RDFLabel -> IO ()
+printLabelTypesOfGraph rdfGraph = printWrapper "GRAPH PROPERTIES" $ do
                   putStrLn "NAMESPACE:"
                   print $ _prefixes rdfGraph
                   -- putStrLn "\nNODES:"
@@ -161,16 +197,28 @@ printPropsOfGraph rdfGraph = printWrapper "GRAPH PROPERTIES" $ do
 printFilteringTests :: NSGraph RDFLabel -> IO ()
 printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
                     putStrLn "FILTERED BY OBJECT:"
+                    putStrLn "ValToLabel tests:"
+                    putStrLn "Int"
+                    let v = valToLabel (-1 :: Int)
+                    print v
+                    putStrLn "String"
+                    print $ valToLabel "String value"
+                    putStrLn "URI to be"
+                    print $ valToLabel "http://www.cw.org/prob4B"
+                    putStrLn "Booleans"
+                    print $ valToLabel True
+                    print $ valToLabel False
+                    
                     putStrLn "First arc from graph:"
                     let eh = S.elemAt 2 (getArcs rdfGraph)
                     print eh
                     putStrLn "\nTestArc:"
-                    let testArc = arc (strToURIRDFLabel "http://www.cw.org/subjectA") (strToURIRDFLabel "http://www.cw.org/predicateA") (strToURIRDFLabel "http://www.cw.org/objectA")
+                    let testArc = arc (allowURIOnly $ valToLabel "http://www.cw.org/subjectA") (allowURIOnly $ valToLabel "http://www.cw.org/predicateA") (valToLabel "http://www.cw.org/objectA")
                     print testArc
                     putStrLn "\nTestLabels:"
-                    let testSubjLb = "http://www.cw.org/prob4B"
-                    let testPredLb = "http://www.cw.org/testPredB"
-                    let testObjLb = show $ rdfLabelToURI $ arcObj testArc
+                    let testSubjLb = valToLabel "http://www.cw.org/prob4B"
+                    let testPredLb = valToLabel "http://www.cw.org/testPredB"
+                    let testObjLb = arcObj testArc
                     print testSubjLb
                     print testPredLb
                     print testObjLb
@@ -192,16 +240,22 @@ printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
                     printGraph expanded
 
                     putStrLn "\nFILTERED BY OBJECT WITH EXTRACT:"
-                    let problem2Subj = "http://www.cw.org/#problem2"
-                    let problem2Obj = True
-                    let problem3Pred1 = "http://www.cw.org/problem3/#predicate1"
-                    let problem3Pred2 = "http://www.cw.org/problem3/#predicate2"
-                    let problem3Pred3 = "http://www.cw.org/problem3/#predicate3"
+                    let problem2Subj = valToLabel "http://www.cw.org/#problem2"
+                    let problem2Obj = valToLabel True
+                    let problem3Pred1 = valToLabel "http://www.cw.org/problem3/#predicate1"
+                    let problem3Pred2 = valToLabel "http://www.cw.org/problem3/#predicate2"
+                    let problem3Pred3 = valToLabel "http://www.cw.org/problem3/#predicate3"
                     putStrLn "PROBLEM 2"
                     putStrLn "1)"
-                    printGraph $ filterBySubj problem2Subj expanded
+                    let graphFil1 = filterBySubj problem2Subj expanded
+                    printGraph graphFil1
                     putStrLn "2)"
-                    printGraph $ filterByObj problem2Obj expanded
+                    let graphFil2 = filterByObj problem2Obj expanded
+                    printGraph graphFil2
+                    putStrLn "Combined)"
+                    let combined = filterByObj problem2Obj graphFil1
+                    printGraph combined
+                    
                     putStrLn "\nPROBLEM 3"
                     putStrLn "1)"
                     printGraph $ filterByPred problem3Pred1 expanded
@@ -209,6 +263,13 @@ printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
                     printGraph $ filterByPred problem3Pred2 expanded
                     putStrLn "3)"
                     printGraph $ filterByPred problem3Pred3 expanded
+
+                    putStrLn "\nFILTER WITH MULTIPLE FILTERS:"
+                    let testLabelTypeTupleAr = [(Subj, problem2Subj), (Obj, problem2Obj)]
+                    printGraph $ filterMultiple testLabelTypeTupleAr And rdfGraph
+
+-- plain strings dont parse to URI, numbers (in strings) dont either, plain numbers give an error
+-- true/false (in strings) dont parse, plain true/false throw an error
 
 printWrapper :: String -> IO a -> IO ()
 printWrapper msg io = do
@@ -239,17 +300,40 @@ _arcs graph = getArcs graph
 _graphSize :: LDGraph lg lb => lg lb -> Int
 _graphSize graph = S.size (getArcs graph)
 
-strToURIRDFLabel :: String -> RDFLabel
-strToURIRDFLabel lb = toRDFLabel $ fromJust $ parseURI lb
-
-rdfLabelToURI :: RDFLabel -> URI
-rdfLabelToURI lb = getQNameURI $ fromJust $ fromRDFLabel lb
-
 fst :: (a, b, c) -> a
 fst (a, _, _) = a
 
 thrd :: (a, b, c) -> c
 thrd (_, _, c) = c
+------------------------------
+
+--- MANIPULATING THE GRAPH ---
+-- checkIfURIRDFLabel :: RDFLabel -> RDFLabel
+-- checkIfURIRDFLabel lb = toRDFLabel $ parseToURIOnly lb
+
+allowURIOnly :: RDFLabel -> RDFLabel
+allowURIOnly lb = case isUri lb of
+                    False -> error "The label is not a URI."
+                    True -> lb
+
+-- parseToURIOnly :: RDFLabel -> URI
+-- parseToURIOnly lb = case fromRDFLabel lb of
+--                       Nothing -> error "Couldn't parse the label to a URI."
+--                       Just x -> case parseURI x of
+--                                     Nothing -> error "Couldn't parse URI. This triple property can only be of type URI."
+--                                     Just x -> x
+
+rdfLabelToURI :: RDFLabel -> URI
+rdfLabelToURI lb = getQNameURI $ fromJust $ fromRDFLabel lb
+
+-- expands triples
+qnameToURILabel :: QName -> RDFLabel
+qnameToURILabel lb = toRDFLabel $ getQNameURI lb
+
+strToLabel :: String -> RDFLabel
+strToLabel s = case parseURI s of
+                    Nothing -> toRDFLabel s
+                    Just x -> toRDFLabel x
 ------------------------------
 
 --------- CONVERTING ---------
@@ -287,6 +371,11 @@ lTextToStr c = TL.unpack c
 
 -- fileToLabel :: String
 -- fileToLabel s = toRDFLabel s
+
+-- intt :: (Num a, Eq a, Integral a) => a -> RDFLabel
+-- intt i = do 
+--         let m = toInteger i
+--         toRDFLabel m
 
 ----------- STATE ------------
 -- main = CMS.evalStateT setState emptyState
