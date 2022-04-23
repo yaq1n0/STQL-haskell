@@ -47,16 +47,19 @@ main :: IO ()
 -- main = putStrLn "hello, swish!"
 main = print $ printState emptyState
 
--- Swish version
-importFile :: IO String
-importFile = do
-      bar <- readFile "../inputs/bar.ttl"
-      foo <- readFile "../inputs/foo.ttl"
+testing :: IO String
+testing = importFile "../inputs/bar.ttl" "../inputs/foo.ttl"
 
-      let barGraph = getGraph bar
-      let fooGraph = getGraph foo
+-- Swish version
+importFile :: FilePath -> FilePath -> IO String
+importFile filepath filepath' = do
+      file <- readFile filepath
+      file' <- readFile filepath'
+
+      let g = getGraph file
+      let g' = getGraph file'
       
-      printGraphPairManipulations barGraph fooGraph
+      printGraphPairManipulations g g'
       -- printLabelTypesOfGraph barGraph
       -- printFilteringTests barGraph
       -- printFilteringTests fooGraph
