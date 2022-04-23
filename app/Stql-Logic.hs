@@ -9,7 +9,7 @@ import qualified Data.Set as S (Set, filter, size, elemAt, toList, fromList)
   -- SWISH IMPORTS
 import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
 import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
-import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, toRDFGraph, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels)
+import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, merge, toRDFGraph, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels)
 import Swish.RDF.Formatter.Turtle (formatGraphAsText, formatGraphIndent, formatGraphAsBuilder)
 import Swish.Commands (swishInput)
 import Swish.QName (QName, getQNameURI, getNamespace, getLocalName, getQNameURI)
@@ -55,10 +55,15 @@ importFile = do
 
       let barGraph = getGraph bar
       let fooGraph = getGraph foo
+      let barExpanded = expandTriples barGraph
+      let fooExpanded = expandTriples fooGraph
 
+      let merged = mergeGraphs barExpanded fooExpanded
+      putStrLn "COMBINED GRAPHS"
+      printGraph $ merged
       -- printLabelTypesOfGraph barGraph
-      printFilteringTests barGraph
-      printFilteringTests fooGraph
+      -- printFilteringTests barGraph
+      -- printFilteringTests fooGraph
 
       return ""
 
@@ -149,7 +154,7 @@ filterIterateGraphs (And) gs = getDups [arc | g <- gs, arc <- S.toList $ getArcs
 filterIterateGraphs (Or) gs = error "lol"
 
 getDups :: [Arc RDFLabel] -> [Arc RDFLabel]
-getDups xs = xs \\ nub xs
+getDups arcs = arcs \\ nub arcs
 
 fil :: Arc RDFLabel -> Arc RDFLabel -> Bool
 fil o arc = arc == o
@@ -335,6 +340,9 @@ strToLabel :: String -> RDFLabel
 strToLabel s = case parseURI s of
                     Nothing -> toRDFLabel s
                     Just x -> toRDFLabel x
+
+mergeGraphs :: RDFGraph -> RDFGraph -> RDFGraph
+mergeGraphs g g' = merge g g'
 ------------------------------
 
 --------- CONVERTING ---------
@@ -358,9 +366,6 @@ lTextToStr c = TL.unpack c
 
 -- graphFromFileString :: String -> RDFGraph
 -- graphFromFileString foo = do
-
--- mergeGraphs :: RDFGraph -> RDFGraph -> RDFGraph
--- mergeGraphs g g' =
 
 -- toText :: Text -> ParseResult
 -- toText p = parseTurtle p Nothing
