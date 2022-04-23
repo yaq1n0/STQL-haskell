@@ -50,33 +50,34 @@ main = print $ printState emptyState
 -- Swish version
 importFile :: IO String
 importFile = do
-      contents <- readFile "../inputs/foo.ttl"
-      -- putStrLn contents
+      bar <- readFile "../inputs/bar.ttl"
+      foo <- readFile "../inputs/foo.ttl"
 
-      let base = getBase contents
-      putStrLn "BASE: "
-      print base
-      case (parseIntoTurtle contents base) of
-          Left err -> putStrLn "Can't parse the file."
-          Right rdfGraph -> do
-              -- printLabelTypesOfGraph rdfGraph
-              printFilteringTests rdfGraph
-              
-      -- let printComment = "RETURNING: " ++ contents
-      -- return printComment
+      let barGraph = getGraph bar
+      let fooGraph = getGraph foo
+
+      -- printLabelTypesOfGraph barGraph
+      printFilteringTests barGraph
+      printFilteringTests fooGraph
+
       return ""
+
+getGraph :: String -> RDFGraph
+getGraph contents = case (parseIntoTurtle contents (getBase contents)) of
+                    Left err -> error "Can't parse the file."
+                    Right rdfGraph -> rdfGraph
 
 -- parse input into the turtle format
 parseIntoTurtle :: String -> Maybe URI -> ParseResult
-parseIntoTurtle contents base = parseTurtle (strToLText contents) base
+parseIntoTurtle foo base = parseTurtle (strToLText foo) base
 
 -- get the base value from a turtle file 
 getBase :: String -> Maybe URI
-getBase contents = do
+getBase foo = do
             let prefix = "@base <"
             let suffix = "> ."
 
-            let bases = Prelude.filter (isBase prefix suffix) $ lines contents
+            let bases = Prelude.filter (isBase prefix suffix) $ lines foo
             
             case bases of
               [] -> Nothing
@@ -356,7 +357,7 @@ lTextToStr c = TL.unpack c
 ------------------------------
 
 -- graphFromFileString :: String -> RDFGraph
--- graphFromFileString contents = do
+-- graphFromFileString foo = do
 
 -- mergeGraphs :: RDFGraph -> RDFGraph -> RDFGraph
 -- mergeGraphs g g' =
