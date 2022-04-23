@@ -55,17 +55,41 @@ importFile = do
 
       let barGraph = getGraph bar
       let fooGraph = getGraph foo
-      let barExpanded = expandTriples barGraph
-      let fooExpanded = expandTriples fooGraph
-
-      let merged = mergeGraphs barExpanded fooExpanded
-      putStrLn "COMBINED GRAPHS"
-      printGraph $ merged
+      
+      printGraphPairManipulations barGraph fooGraph
       -- printLabelTypesOfGraph barGraph
       -- printFilteringTests barGraph
       -- printFilteringTests fooGraph
 
       return ""
+
+--------- COMPARING ----------
+compareGraphs :: RDFGraph -> TripleLabelCatgs -> RDFGraph -> TripleLabelCatgs -> RDFGraph
+compareGraphs g catg g' catg' = merged
+                      where
+                        -- merge all the filtered graphs
+                        merged = mergeMultiple filtered
+                        filtered = tuplesToList filteredTupled
+                        -- filter both graphs by the matches between those graphs' lists of (subj OR pred OR obj)
+                        filteredTupled = [(handleFilterLabelTypes catg d g, handleFilterLabelTypes catg' d g') | d <- duplicates firstCatgs sndCatgs]
+                        -- all the matches between the (subj OR pred OR obj) lists of both graphs
+                        duplicates xs ys = filter (\x -> (x `elem` ys)) xs
+                        -- all (subj OR pred OR obj) of the first and second graphs, respectively
+                        firstCatgs = [getCategoryLabel catg arcg | arcg <- S.toList $ getArcs g]
+                        sndCatgs = [getCategoryLabel catg' arcg' | arcg' <- S.toList $ getArcs g']
+
+mergeMultiple :: [RDFGraph] -> RDFGraph
+mergeMultiple [] = createGraph
+mergeMultiple (x:xs) = mergeGraphs x (mergeMultiple xs)
+
+tuplesToList :: [(a, a)] -> [a]
+tuplesToList ((a, b) : cs) = a : b : tuplesToList cs
+tuplesToList _ = []
+------------------------------
+
+--- MANIPULATING THE GRAPH ---
+createGraph :: RDFGraph
+createGraph = emptyRDFGraph
 
 getGraph :: String -> RDFGraph
 getGraph contents = case (parseIntoTurtle contents (getBase contents)) of
@@ -101,8 +125,41 @@ extractBase base prefix suffix = do
             let sS = fromJust maybesS
             textToStr sS
 
-createGraph :: RDFGraph
-createGraph = emptyRDFGraph
+getCategoryLabel :: TripleLabelCatgs -> Arc RDFLabel -> RDFLabel
+getCategoryLabel (Subj) arc = arcSubj arc
+getCategoryLabel (Pred) arc = arcPred arc
+getCategoryLabel (Obj) arc = arcObj arc
+
+-- checkIfURIRDFLabel :: RDFLabel -> RDFLabel
+-- checkIfURIRDFLabel lb = toRDFLabel $ parseToURIOnly lb
+
+allowURIOnly :: RDFLabel -> RDFLabel
+allowURIOnly lb = case isUri lb of
+                    False -> error "The label is not a URI."
+                    True -> lb
+
+-- parseToURIOnly :: RDFLabel -> URI
+-- parseToURIOnly lb = case fromRDFLabel lb of
+--                       Nothing -> error "Couldn't parse the label to a URI."
+--                       Just x -> case parseURI x of
+--                                     Nothing -> error "Couldn't parse URI. This triple property can only be of type URI."
+--                                     Just x -> x
+
+rdfLabelToURI :: RDFLabel -> URI
+rdfLabelToURI lb = getQNameURI $ fromJust $ fromRDFLabel lb
+
+-- expands triples
+qnameToURILabel :: QName -> RDFLabel
+qnameToURILabel lb = toRDFLabel $ getQNameURI lb
+
+strToLabel :: String -> RDFLabel
+strToLabel s = case parseURI s of
+                    Nothing -> toRDFLabel s
+                    Just x -> toRDFLabel x
+
+mergeGraphs :: RDFGraph -> RDFGraph -> RDFGraph
+mergeGraphs g g' = merge g g'
+------------------------------
 
 --------- EXPANDING ----------
 expandTriples :: NSGraph RDFLabel -> NSGraph RDFLabel
@@ -150,11 +207,11 @@ handleFilterLabelTypes (Pred) lbt g = filterByPred lbt g
 handleFilterLabelTypes (Obj) lbt g = filterByObj lbt g
 
 filterIterateGraphs :: Combinator -> [RDFGraph] -> [Arc RDFLabel]
-filterIterateGraphs (And) gs = getDups [arc | g <- gs, arc <- S.toList $ getArcs g]
+filterIterateGraphs (And) gs = getDuplicates [arc | g <- gs, arc <- S.toList $ getArcs g]
 filterIterateGraphs (Or) gs = error "lol"
 
-getDups :: [Arc RDFLabel] -> [Arc RDFLabel]
-getDups arcs = arcs \\ nub arcs
+getDuplicates :: [Arc RDFLabel] -> [Arc RDFLabel]
+getDuplicates arcs = arcs \\ nub arcs
 
 fil :: Arc RDFLabel -> Arc RDFLabel -> Bool
 fil o arc = arc == o
@@ -168,7 +225,7 @@ printState s = "format: " ++ show (format s) ++ ", base: " ++ show (base s) ++ "
 printGraph :: RDFGraph -> IO ()
 printGraph g = putStrLn (textToStr $ formatGraphAsText g)
 
--- TODO: print graph out with prefixes expanded
+-- TODO: print graph out with predicate/object lists expanded
 -- printGraphWPrefixes g = formatGraphIndent (formatGraphAsBuilder g) True g
 
 -- print the Properties of label subject (used for testing)
@@ -199,6 +256,23 @@ printLabelTypesOfGraph rdfGraph = printWrapper "GRAPH PROPERTIES" $ do
                   -- printGraph rdfGraph
                   -- putStrLn "\nLABELS:"
                   -- print $ _labels rdfGraph
+
+printGraphPairManipulations :: NSGraph RDFLabel -> NSGraph RDFLabel -> IO ()
+printGraphPairManipulations rdfGraph rdfGraph' = printWrapper "GRAPH PAIR MANIPULATIONS" $ do
+                            let gExpanded = expandTriples rdfGraph
+                            let g'Expanded = expandTriples rdfGraph'
+                            -- putStrLn "BAR"
+                            -- printGraph gExpanded
+                            -- putStrLn "FOO"
+                            -- printGraph g'Expanded
+                            
+                            putStrLn "COMPARED GRAPHS"
+                            let compared = compareGraphs g'Expanded Obj gExpanded Subj
+                            printGraph compared
+                            
+                            -- putStrLn "MERGED GRAPHS"
+                            -- let merged = mergeGraphs gExpanded g'Expanded
+                            -- printGraph $ merged
 
 printFilteringTests :: NSGraph RDFLabel -> IO ()
 printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
@@ -311,38 +385,6 @@ fst (a, _, _) = a
 
 thrd :: (a, b, c) -> c
 thrd (_, _, c) = c
-------------------------------
-
---- MANIPULATING THE GRAPH ---
--- checkIfURIRDFLabel :: RDFLabel -> RDFLabel
--- checkIfURIRDFLabel lb = toRDFLabel $ parseToURIOnly lb
-
-allowURIOnly :: RDFLabel -> RDFLabel
-allowURIOnly lb = case isUri lb of
-                    False -> error "The label is not a URI."
-                    True -> lb
-
--- parseToURIOnly :: RDFLabel -> URI
--- parseToURIOnly lb = case fromRDFLabel lb of
---                       Nothing -> error "Couldn't parse the label to a URI."
---                       Just x -> case parseURI x of
---                                     Nothing -> error "Couldn't parse URI. This triple property can only be of type URI."
---                                     Just x -> x
-
-rdfLabelToURI :: RDFLabel -> URI
-rdfLabelToURI lb = getQNameURI $ fromJust $ fromRDFLabel lb
-
--- expands triples
-qnameToURILabel :: QName -> RDFLabel
-qnameToURILabel lb = toRDFLabel $ getQNameURI lb
-
-strToLabel :: String -> RDFLabel
-strToLabel s = case parseURI s of
-                    Nothing -> toRDFLabel s
-                    Just x -> toRDFLabel x
-
-mergeGraphs :: RDFGraph -> RDFGraph -> RDFGraph
-mergeGraphs g g' = merge g g'
 ------------------------------
 
 --------- CONVERTING ---------
