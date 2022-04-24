@@ -26,7 +26,6 @@ import Control.Monad.Reader.Class (ask)
   -- TEXT IMPORTS
 import qualified Data.Text.Lazy as TL (Text, pack, unpack, toStrict)
 import qualified Data.Text as T (Text, pack, unpack, stripPrefix, stripSuffix)
-import qualified Data.Text.Lazy.Builder as B (Builder, toLazyText, fromString)
 import Data.List (nub, (\\), sort, intersperse)
 
   -- NETWORK IMPORTS
@@ -42,7 +41,7 @@ data Direction = In | Out
 type SubTriple = (Maybe LabelTypeSubTriple, Maybe LabelTypeSubTriple, Maybe LabelTypeSubTriple)
 
 -- REF1
--- wrap LabelTypeTuple in an existential type
+-- wrap LabelType in an existential type
 data LabelTypeSubTriple = forall a. LabelType a => LabelTypeSubTriple a | Incr Integer
 -- END OF REF1
 
@@ -62,7 +61,6 @@ instance LabelType Integer where valToLabel = toRDFLabel
 
 main :: IO ()
 main = putStrLn "hello, swish!"
--- main = print $ printState emptyState
 
 testing :: IO String
 testing = importFile "../inputs/bar.ttl" "../inputs/foo.ttl" "../inputs/fooProb5.ttl"
@@ -75,8 +73,14 @@ importFile filepath filepath' filepath'' = do
 
       let graphs = getGraphs [file, file', file'']
       let expanded = expandGraphs graphs
-      -- let cleaned = cleanGraphs expanded
-      putStrLn $ graphToText (expanded !! 1)
+      let cleaned = cleanGraphs expanded
+      let (g, g', g'') = (cleaned !! 0, cleaned !! 1, cleaned !! 2)
+      printP1 g g'
+      printP2 g'
+      printP3 g'
+      printP4 g g'
+      
+      -- putStrLn $ graphToText (expanded !! 1)
 
       -- printProblem5 (cleaned !! 0) (cleaned !! 1) (cleaned !! 2)
       -- printGraphPairManipulations (cleaned !! 0) (cleaned !! 1)
@@ -90,12 +94,13 @@ importFile filepath filepath' filepath'' = do
 -- out g = putStrLn $ textToStr $ formatGraphAsTextTP g
 -- out g = putStrLn $ textToStr $ graphToText g
 
--- graphToText :: RDFGraph -> T.Text
-graphToText g = unlines triplesStringified
+
+
+graphToString :: RDFGraph -> String
+graphToString g = unlines triplesStringified
         where
           -- intoLines = intersperse "\n" triplesStringified
           triplesStringified = [(tripleToOut triple) ++ " ." | triple <- sorted]
-          -- intoStrings = [lbTripleToStringTriple triple | triple <- sorted]
           sorted = sort $ triples g
 
 tripleToOut :: (RDFLabel, RDFLabel, RDFLabel) -> String
@@ -112,22 +117,8 @@ lbToOut lb = case isUri lb of
                           --           True -> " " ++ show lb
                           --           False -> " \"" ++ show lb ++ "\""
 
--- intoLines 
--- intoLines (t, t', t'') str = str + 
-
 triples :: RDFGraph -> [(RDFLabel, RDFLabel, RDFLabel)]
 triples g = [(arcSubj arc, arcPred arc, arcObj arc) | arc <- S.toList $ getArcs g]
-
--- lbTripleToStringTriple :: (RDFLabel, RDFLabel, RDFLabel) -> (String, String, String) 
--- lbTripleToStringTriple (t, t', t'') = (show t, show t', show t'')
-
--- lbToString :: RDFLabel -> String
--- lbToString lb = case fromRDFLabel lb of
---                   Nothing -> error "Couldn't parse label into a string."
---                   Just x -> x
-
--- lbToQname :: RDFLabel -> QName
--- lbToQname lb = fromRDFLabel lb
 
 ------- EDITING GRAPHS -------
 editGraphs :: RDFGraph -> Direction -> Integer -> Integer -> SubTriple -> RDFGraph
@@ -263,20 +254,10 @@ getCategoryLabel (Subj) arc = arcSubj arc
 getCategoryLabel (Pred) arc = arcPred arc
 getCategoryLabel (Obj) arc = arcObj arc
 
--- checkIfURIRDFLabel :: RDFLabel -> RDFLabel
--- checkIfURIRDFLabel lb = toRDFLabel $ parseToURIOnly lb
-
 allowURIOnly :: RDFLabel -> RDFLabel
 allowURIOnly lb = case isUri lb of
                     False -> error "The label is not a URI."
                     True -> lb
-
--- parseToURIOnly :: RDFLabel -> URI
--- parseToURIOnly lb = case fromRDFLabel lb of
---                       Nothing -> error "Couldn't parse the label to a URI."
---                       Just x -> case parseURI x of
---                                     Nothing -> error "Couldn't parse URI. This triple property can only be of type URI."
---                                     Just x -> x
 
 rdfLabelToURI :: RDFLabel -> URI
 rdfLabelToURI lb = getQNameURI $ fromJust $ fromRDFLabel lb
@@ -353,9 +334,10 @@ handleFilterRanges :: Direction -> Integer -> Integer -> RDFGraph -> RDFGraph
 handleFilterRanges (In) n n' g = filterRangesIn n n' g
 handleFilterRanges (Out) n n' g = filterRangesOut n n' g
 
--- TODO: doesn't preserve graph prefixes yet
 filterMultiple :: [LabelTypeTuple] -> Combinator -> RDFGraph -> RDFGraph
-filterMultiple as c g = toRDFGraph $ S.fromList $ filterIterateGraphs c [handleFilterLabelTypes labelCat lb g | (labelCat, lb) <- as]
+filterMultiple as c g = toRDFGraph $ S.fromList $ filterIterateGraphs c filteredGraphs
+                  where
+                    filteredGraphs = [handleFilterLabelTypes labelCat lb g | (labelCat, lb) <- as]
 
 handleFilterLabelTypes :: Category -> RDFLabel -> RDFGraph -> RDFGraph
 handleFilterLabelTypes (Subj) lb g = filterBySubj lb g
@@ -363,8 +345,11 @@ handleFilterLabelTypes (Pred) lb g = filterByPred lb g
 handleFilterLabelTypes (Obj) lb g = filterByObj lb g
 
 filterIterateGraphs :: Combinator -> [RDFGraph] -> [Arc RDFLabel]
-filterIterateGraphs (And) gs = getDuplicates [arc | g <- gs, arc <- S.toList $ getArcs g]
-filterIterateGraphs (Or) gs = error "lol"
+filterIterateGraphs (And) gs = getDuplicates $ combinedArcs gs
+filterIterateGraphs (Or) gs = combinedArcs gs
+
+combinedArcs :: [RDFGraph] -> [Arc RDFLabel]
+combinedArcs gs = [arc | g <- gs, arc <- S.toList $ getArcs g]
 
 getDuplicates :: [Arc RDFLabel] -> [Arc RDFLabel]
 getDuplicates arcs = arcs \\ nub arcs
@@ -373,29 +358,160 @@ fil :: Arc RDFLabel -> Arc RDFLabel -> Bool
 fil o arc = arc == o
 ------------------------------
 
+------ GRAPH PROPERTIES ------
+-- get labels of a graph
+_labels :: (LDGraph lg lb, Ord lb) => lg lb -> S.Set lb
+_labels graph = labels graph
+
+-- get prefixes of a graph (such as p, s, and t)
+_prefixes :: NSGraph lb -> NamespaceMap
+_prefixes graph = getNamespaces graph
+
+-- get nodes of a graph (all the triple elements of all triples, but without predicates)
+_nodes :: (LDGraph lg lb, Ord lb) => lg lb -> S.Set lb
+_nodes graph = nodes graph
+
+-- get arcs of a graph (all the triples of a graph)
+_arcs :: LDGraph lg lb => lg lb -> ArcSet lb
+_arcs graph = getArcs graph
+
+-- get graph size
+_graphSize :: LDGraph lg lb => lg lb -> Int
+_graphSize graph = S.size (getArcs graph)
+------------------------------
+
+--------- CONVERTING ---------
+-- changes String into Text
+strToText :: String -> T.Text
+strToText c = T.pack c
+
+-- changes Text into String
+textToStr :: T.Text -> String
+textToStr c = T.unpack c
+
+-- changes String into Lazy Text
+strToLText :: String -> TL.Text
+strToLText c = TL.pack c
+
+-- changes Lazy Text into String
+lTextToStr :: TL.Text -> String
+lTextToStr c = TL.unpack c
+
+------------------------------
+
 ---------- PRINTING ----------
--- printState :: SwishState -> String
--- printState s = "format: " ++ show (format s) ++ ", base: " ++ show (base s) ++ ", graph: " ++ show (graph s) ++ ", rules: " ++ show (rules s) ++ ", infomsg: " ++ show (infomsg s) ++ ", errormsg: " ++ show (errormsg s) ++ ", exitcode: " ++ show (exitcode s)
-
--- print graph out with predicate/object lists expanded
--- printGraphUnbundled :: RDFGraph -> IO ()
--- printGraphUnbundled g = out g
---                   where
---                       text = B.toLazyText builder
---                       builder = formatGraphIndentTP (formatGraphAsBuilderTP g) False g
--- handle =  let fg  = formatGraph indnt " .\n" False flag gr
---       ngs = emptyNgs { nodeGen = findMaxBnode gr }
-
--- _formatG 
--- _formatG setIndent setLineBreak newState formatPrefixes subjs MYFUNCTION "\n" " .\n" False False g
-
+-- print a fully expanded graph
+printGraph :: RDFGraph -> IO ()
+printGraph g = putStrLn $ graphToString g
 
 printGraphToOut :: RDFGraph -> String
 printGraphToOut g = textToStr $ formatGraphAsText g
 
--- print Graph into output (with newlines)
-printGraph :: RDFGraph -> IO ()
-printGraph g = putStrLn (textToStr $ formatGraphAsText g)
+-- print graph with indentations and predicate/object lists
+printGraphIndented :: RDFGraph -> IO ()
+printGraphIndented g = putStrLn $ printGraphToOut g
+
+  ---------- PROBLEMS ----------
+  -- P1
+p1 :: RDFGraph -> RDFGraph -> RDFGraph
+p1 g g' = mergeGraphs g g'
+
+printP1 :: NSGraph RDFLabel -> NSGraph RDFLabel -> IO ()
+printP1 g g' = printWrapper "PROBLEM 1" $ do
+                        printGraph $ p1 g g'
+
+  -- P2
+p2 :: [LabelTypeTuple] -> Combinator ->  RDFGraph -> RDFGraph
+p2 = filterMultiple
+
+printP2 :: RDFGraph -> IO ()
+printP2 g = printWrapper "PROBLEM 2" $ do
+                      let fs = p2Test
+                      printGraph $ p2 fs And g
+
+p2Test :: [LabelTypeTuple]
+p2Test = do
+        let problem2Subj = valToLabel "http://www.cw.org/#problem2"
+        let problem2Obj = valToLabel True
+        let filters = [(Subj, problem2Subj), (Obj, problem2Obj)]
+        filters
+
+printP2Extended ::  RDFGraph -> IO ()
+printP2Extended g = printWrapper "PROBLEM 2" $ do
+                      let fs = p2Test
+                      putStrLn "1)"
+                      let graphFil1 = filterBySubj (snd $ head fs) g
+                      printGraph graphFil1
+                      putStrLn "2)"
+                      let graphFil2 = filterByObj (snd $ last fs) g
+                      printGraph graphFil2
+                      putStrLn "Combined)"
+                      let combined = p2 fs And g
+                      printGraph combined
+
+  -- P3
+p3 :: [LabelTypeTuple] -> Combinator -> RDFGraph -> RDFGraph
+p3 = filterMultiple
+
+printP3 :: RDFGraph -> IO ()
+printP3 g = printWrapper "PROBLEM 3" $ do
+                let fs = p3Test
+                printGraph $ p3 fs Or g
+
+p3Test :: [LabelTypeTuple]
+p3Test = do
+            let problem3Pred1 = valToLabel "http://www.cw.org/problem3/#predicate1"
+            let problem3Pred2 = valToLabel "http://www.cw.org/problem3/#predicate2"
+            let problem3Pred3 = valToLabel "http://www.cw.org/problem3/#predicate3"
+            let filters = [(Pred, problem3Pred1), (Pred, problem3Pred2), (Pred, problem3Pred3)]
+            filters
+                    
+
+printP3Extended :: RDFGraph -> IO ()
+printP3Extended g = printWrapper "PROBLEM 3" $ do
+                    let fs = p3Test
+                    putStrLn "\nPROBLEM 3"
+                    putStrLn "1)"
+                    printGraph $ filterByPred (snd $ head fs) g
+                    putStrLn "2)"
+                    printGraph $ filterByPred (snd $ (fs !! 1)) g
+                    putStrLn "3)"
+                    printGraph $ filterByPred (snd $ last fs) g
+
+  -- P4
+p4 :: RDFGraph -> Category -> RDFGraph -> Category -> RDFGraph
+p4 = compareGraphs
+
+printP4 :: RDFGraph -> RDFGraph -> IO ()
+printP4 g g' = printWrapper "PROBLEM 4" $ do
+                      printGraph $ p4 g Subj g' Obj
+
+  -- P5
+-- p5 g = 
+
+-- printP5 :: RDFGraph -> RDFGraph -> RDFGraph -> IO ()
+-- printP5 g g' g'' = printWrapper "PROBLEM 5" $ do
+--                           putStrLn "P5 GRAPH"
+--                           printGraph g''
+                          
+--                           let triple = (Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), Just (LabelTypeSubTriple False))
+--                           let triple' = (Nothing, Nothing, Just (Incr 1))
+--                           let triple'' = (Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), Just (LabelTypeSubTriple True))
+                          
+--                           let edited = editGraphs g'' Out 0 99 triple
+--                           let edited' = editGraphs g'' In 0 99 triple'
+--                           let edited'' = editGraphs g'' In 0 99 triple''
+--                           putStrLn "EDITED"
+--                           printGraph edited
+--                           -- printToFile edited "first.ttl"
+--                           putStrLn "EDITED'"
+--                           -- printToFile edited' "snd.ttl"
+--                           printGraph edited'
+                          
+--                           putStrLn "EDITED''"
+--                           printGraph edited''
+                          -- printToFile edited'' "third.ttl"
+
 
 -- print the Properties of label subject (used for testing)
 printSubjLabelTypesOfArc :: Arc RDFLabel -> IO ()
@@ -425,22 +541,7 @@ printLabelTypesOfGraph rdfGraph = printWrapper "GRAPH PROPERTIES" $ do
                   -- printGraph rdfGraph
                   -- putStrLn "\nLABELS:"
                   -- print $ _labels rdfGraph
-
-printGraphPairManipulations :: NSGraph RDFLabel -> NSGraph RDFLabel -> IO ()
-printGraphPairManipulations g g' = printWrapper "GRAPH PAIR MANIPULATIONS" $ do
-                            -- putStrLn "BAR"
-                            -- printGraph g
-                            -- putStrLn "FOO"
-                            -- printGraph g'
                             
-                            putStrLn "COMPARED GRAPHS"
-                            let compared = compareGraphs g Subj g' Obj
-                            printGraph compared
-                            
-                            -- putStrLn "MERGED GRAPHS"
-                            -- let merged = mergeGraphs gExpanded g'Expanded
-                            -- printGraph $ merged
-
 printFilteringTests :: NSGraph RDFLabel -> IO ()
 printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
                     putStrLn "FILTERED BY OBJECT:"
@@ -473,76 +574,12 @@ printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
                     -- printGraph $ filterByPred testPredLb expanded
                     -- printGraph $ filterByObj testObjLb expanded
 
-                    -- custom-written filtering
-                    putStrLn "\nCustom-written filtering:"
-                    let filtered = S.filter (fil testArc) (getArcs rdfGraph)
-                    let lol = update (S.filter (fil testArc)) rdfGraph
-                    print filtered
-
                     putStrLn "\nEquality between test and graph arc?:"
                     print $ fil testArc eh
                     
                     putStrLn "\n\nEXPANDED:"
                     let expanded = expandTriples rdfGraph
                     printGraph expanded
-
-                    putStrLn "\nFILTERED BY OBJECT WITH EXTRACT:"
-                    let problem2Subj = valToLabel "http://www.cw.org/#problem2"
-                    let problem2Obj = valToLabel True
-                    let problem3Pred1 = valToLabel "http://www.cw.org/problem3/#predicate1"
-                    let problem3Pred2 = valToLabel "http://www.cw.org/problem3/#predicate2"
-                    let problem3Pred3 = valToLabel "http://www.cw.org/problem3/#predicate3"
-                    putStrLn "PROBLEM 2"
-                    putStrLn "1)"
-                    let graphFil1 = filterBySubj problem2Subj expanded
-                    printGraph graphFil1
-                    putStrLn "2)"
-                    let graphFil2 = filterByObj problem2Obj expanded
-                    printGraph graphFil2
-                    putStrLn "Combined)"
-                    let combined = filterByObj problem2Obj graphFil1
-                    printGraph combined
-                    
-                    putStrLn "\nPROBLEM 3"
-                    putStrLn "1)"
-                    printGraph $ filterByPred problem3Pred1 expanded
-                    putStrLn "2)"
-                    printGraph $ filterByPred problem3Pred2 expanded
-                    putStrLn "3)"
-                    printGraph $ filterByPred problem3Pred3 expanded
-
-                    putStrLn "\nFILTER WITH MULTIPLE FILTERS:"
-                    let testLabelTypeTupleAr = [(Subj, problem2Subj), (Obj, problem2Obj)]
-                    printGraph $ filterMultiple testLabelTypeTupleAr And rdfGraph
-
-printProblem5 :: RDFGraph -> RDFGraph -> RDFGraph -> IO ()
-printProblem5 g g' g'' = printWrapper "PROBLEM 5" $ do
-                          putStrLn "P5 GRAPH"
-                          printGraph g''
-                          
-                          let triple = (Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), Just (LabelTypeSubTriple False))
-                          let triple' = (Nothing, Nothing, Just (Incr 1))
-                          let triple'' = (Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), Just (LabelTypeSubTriple True))
-                          
-                          let edited = editGraphs g'' Out 0 99 triple
-                          let edited' = editGraphs g'' In 0 99 triple'
-                          let edited'' = editGraphs g'' In 0 99 triple''
-                          putStrLn "EDITED"
-                          printGraph edited
-                          putStrLn "       Unbundled"
-                          -- printGraphUnbundled edited
-                          -- printToFile edited "first.ttl"
-                          putStrLn "EDITED'"
-                          -- printToFile edited' "snd.ttl"
-                          printGraph edited'
-                          putStrLn "       Unbundled"
-                          -- printGraphUnbundled edited'
-                          
-                          putStrLn "EDITED''"
-                          printGraph edited''
-                          -- printToFile edited'' "third.ttl"
-                          putStrLn "       Unbundled"
-                          -- printGraphUnbundled edited''
                           
 -- plain strings dont parse to URI, numbers (in strings) dont either, plain numbers give an error
 -- true/false (in strings) dont parse, plain true/false throw an error
@@ -554,108 +591,12 @@ printWrapper :: String -> IO a -> IO ()
 printWrapper msg io = do
                 putStrLn ("--------- " ++ msg ++ "----------")
                 io
-                putStrLn "-----------------------------------"
-                putStrLn ""
+                putStrLn "-----------------------------"
 ------------------------------
+-- toText :: Text -> ParseResult
+-- toText p = parseTurtle p Nothing
 
------- GRAPH PROPERTIES ------
--- get labels of a graph
-_labels :: (LDGraph lg lb, Ord lb) => lg lb -> S.Set lb
-_labels graph = labels graph
-
--- get prefixes of a graph (such as p, s, and t)
-_prefixes :: NSGraph lb -> NamespaceMap
-_prefixes graph = getNamespaces graph
-
--- get nodes of a graph (all the triple elements of all triples, but without predicates)
-_nodes :: (LDGraph lg lb, Ord lb) => lg lb -> S.Set lb
-_nodes graph = nodes graph
-
--- get arcs of a graph (all the triples of a graph)
-_arcs :: LDGraph lg lb => lg lb -> ArcSet lb
-_arcs graph = getArcs graph
-
--- get graph size
-_graphSize :: LDGraph lg lb => lg lb -> Int
-_graphSize graph = S.size (getArcs graph)
-
-fst :: (a, b, c) -> a
-fst (a, _, _) = a
-
-thrd :: (a, b, c) -> c
-thrd (_, _, c) = c
-------------------------------
-
---------- CONVERTING ---------
--- changes String into Text
-strToText :: String -> T.Text
-strToText c = T.pack c
-
--- changes Text into String
-textToStr :: T.Text -> String
-textToStr c = T.unpack c
-
--- changes String into Lazy Text
-strToLText :: String -> TL.Text
-strToLText c = TL.pack c
-
--- changes Lazy Text into String
-lTextToStr :: TL.Text -> String
-lTextToStr c = TL.unpack c
-
-------------------------------
 
 -- REFERENCES
 -- REF1, creating an existential type, author: Fyodor Soikin, accessed April 2022: https://stackoverflow.com/a/52267346/18413650
 -- REF2, Swish documentation, not exported functions from Formatter Turtle module: https://hackage.haskell.org/package/swish-0.10.1.0/docs/src/Swish.RDF.Formatter.Turtle.html#formatGraphAsText
-
-
--- graphFromFileString :: String -> RDFGraph
--- graphFromFileString foo = do
-
--- toText :: Text -> ParseResult
--- toText p = parseTurtle p Nothing
-
--- readInGraph :: SwishStateIO ()
--- readInGraph = do
---           lol <- importFile
---           swishInput (Just lol)
-
--- fileToLabel :: String
--- fileToLabel s = toRDFLabel s
-
--- intt :: (Num a, Eq a, Integral a) => a -> RDFLabel
--- intt i = do 
---         let m = toInteger i
---         toRDFLabel m
-
------------ STATE ------------
--- main = CMS.evalStateT setState emptyState
--- CMS.evalStateT (forever createState) emptyState
-
--- emit :: Show a => a -> SwishStateIO ()
--- emit = SwishState . liftIO . print . show
-
--- add10Points :: SwishStateIO
--- add10Points = do state <- get
-                 
-      -- state <- setState $ do 
-      --       s <- emptyState
-      --       y <- setFormat Turtle s
-      --       k <- setInfo "lol" s
-      --       return s
-      -- print "."
-
--- createState :: SwishStateIO SwishState
--- createState = do
---       let state = emptyState
---       -- setFormat Turtle state
---       return state
-
-
--- setState :: SwishStateIO ()
--- setState = do
---           n <- get
---           -- swishInput (Just "../inputs/bar.ttl")
---           liftIO $ print n
-          
