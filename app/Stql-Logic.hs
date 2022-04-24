@@ -11,7 +11,7 @@ import qualified Data.Set as S (Set, filter, size, elemAt, toList, fromList)
   -- SWISH IMPORTS
 import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
 -- import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
-import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, setNamespaces, addArc, merge, toRDFGraph, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels, emptyNamespaceMap)
+import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, RDFTriple, fromRDFTriple, setNamespaces, addArc, merge, toRDFGraph, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels, emptyNamespaceMap)
 import Swish.RDF.Formatter.Turtle (formatGraphAsText, formatGraphAsLazyText, formatGraphIndent, formatGraphAsBuilder)
 import Swish.Commands (swishInput)
 import Swish.QName (QName, getQNameURI, getNamespace, getLocalName, getQNameURI)
@@ -28,7 +28,7 @@ import Control.Monad.Reader.Class (ask)
 import qualified Data.Text.Lazy as TL (Text, pack, unpack, toStrict)
 import qualified Data.Text as T (Text, pack, unpack, stripPrefix, stripSuffix)
 import qualified Data.Text.Lazy.Builder as B (Builder, toLazyText, fromString)
-import Data.List (nub, (\\))
+import Data.List (nub, (\\), sort, intersperse)
 
   -- NETWORK IMPORTS
 import Network.URI (URI, parseURI)
@@ -77,7 +77,7 @@ importFile filepath filepath' filepath'' = do
       let graphs = getGraphs [file, file', file'']
       let expanded = expandGraphs graphs
       -- let cleaned = cleanGraphs expanded
-      out (expanded !! 1)
+      putStrLn $ graphToText (expanded !! 1)
 
       -- printProblem5 (cleaned !! 0) (cleaned !! 1) (cleaned !! 2)
       -- printGraphPairManipulations (cleaned !! 0) (cleaned !! 1)
@@ -86,6 +86,49 @@ importFile filepath filepath' filepath'' = do
       -- printFilteringTests fooGraph
 
       return ""
+
+-- out :: RDFGraph -> IO ()
+-- out g = putStrLn $ textToStr $ formatGraphAsTextTP g
+-- out g = putStrLn $ textToStr $ graphToText g
+
+-- graphToText :: RDFGraph -> T.Text
+graphToText g = unlines triplesStringified
+        where
+          -- intoLines = intersperse "\n" triplesStringified
+          triplesStringified = [(tripleToOut triple) ++ " ." | triple <- sorted]
+          -- intoStrings = [lbTripleToStringTriple triple | triple <- sorted]
+          sorted = sort $ triples g
+
+tripleToOut :: (RDFLabel, RDFLabel, RDFLabel) -> String
+tripleToOut (lb, lb', lb'') = lbToOut lb ++ lbToOut lb' ++ lbToOut lb''
+
+lbToOut :: RDFLabel -> String
+lbToOut lb = case isUri lb of
+              True -> show lb
+              False -> " " ++ show lb
+                -- case fromRDFLabel lb :: Maybe Integer of
+                --         Just x -> " " ++ show x
+                --         Nothing -> " " ++ show lb
+                          -- case (show lb == "true" || show lb == "false") of
+                          --           True -> " " ++ show lb
+                          --           False -> " \"" ++ show lb ++ "\""
+
+-- intoLines 
+-- intoLines (t, t', t'') str = str + 
+
+triples :: RDFGraph -> [(RDFLabel, RDFLabel, RDFLabel)]
+triples g = [(arcSubj arc, arcPred arc, arcObj arc) | arc <- S.toList $ getArcs g]
+
+-- lbTripleToStringTriple :: (RDFLabel, RDFLabel, RDFLabel) -> (String, String, String) 
+-- lbTripleToStringTriple (t, t', t'') = (show t, show t', show t'')
+
+-- lbToString :: RDFLabel -> String
+-- lbToString lb = case fromRDFLabel lb of
+--                   Nothing -> error "Couldn't parse label into a string."
+--                   Just x -> x
+
+-- lbToQname :: RDFLabel -> QName
+-- lbToQname lb = fromRDFLabel lb
 
 ------- EDITING GRAPHS -------
 editGraphs :: RDFGraph -> Direction -> Integer -> Integer -> SubTriple -> RDFGraph
@@ -335,15 +378,12 @@ fil o arc = arc == o
 -- printState :: SwishState -> String
 -- printState s = "format: " ++ show (format s) ++ ", base: " ++ show (base s) ++ ", graph: " ++ show (graph s) ++ ", rules: " ++ show (rules s) ++ ", infomsg: " ++ show (infomsg s) ++ ", errormsg: " ++ show (errormsg s) ++ ", exitcode: " ++ show (exitcode s)
 
-out :: RDFGraph -> IO ()
-out g = putStrLn $ textToStr $ formatGraphAsTextTP g
-
 -- print graph out with predicate/object lists expanded
-printGraphUnbundled :: RDFGraph -> IO ()
-printGraphUnbundled g = out g
-                  where
-                      text = B.toLazyText builder
-                      builder = formatGraphIndentTP (formatGraphAsBuilderTP g) False g
+-- printGraphUnbundled :: RDFGraph -> IO ()
+-- printGraphUnbundled g = out g
+--                   where
+--                       text = B.toLazyText builder
+--                       builder = formatGraphIndentTP (formatGraphAsBuilderTP g) False g
 -- handle =  let fg  = formatGraph indnt " .\n" False flag gr
 --       ngs = emptyNgs { nodeGen = findMaxBnode gr }
 
@@ -491,19 +531,19 @@ printProblem5 g g' g'' = printWrapper "PROBLEM 5" $ do
                           putStrLn "EDITED"
                           printGraph edited
                           putStrLn "       Unbundled"
-                          printGraphUnbundled edited
+                          -- printGraphUnbundled edited
                           -- printToFile edited "first.ttl"
                           putStrLn "EDITED'"
                           -- printToFile edited' "snd.ttl"
                           printGraph edited'
                           putStrLn "       Unbundled"
-                          printGraphUnbundled edited'
+                          -- printGraphUnbundled edited'
                           
                           putStrLn "EDITED''"
                           printGraph edited''
                           -- printToFile edited'' "third.ttl"
                           putStrLn "       Unbundled"
-                          printGraphUnbundled edited''
+                          -- printGraphUnbundled edited''
                           
 -- plain strings dont parse to URI, numbers (in strings) dont either, plain numbers give an error
 -- true/false (in strings) dont parse, plain true/false throw an error
