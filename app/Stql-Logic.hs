@@ -1,6 +1,8 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ExistentialQuantification #-}
 -- IMPORTS
   -- HASKELL BASE IMPORTS
 import Data.List (isPrefixOf, isSuffixOf)
@@ -29,6 +31,18 @@ import Network.URI (URI, parseURI)
 
 data TripleLabelCatgs = Subj | Pred | Obj
 data Combinator = And | Or
+-- direction of filtering a graph's triples' objects with two numbered literals
+data Direction = In | Out
+
+-- new substituting triple
+-- we don't know the types of the triple's elements, but we know they belong to the same class; the existential type packs all those class types into one
+type SubTriple = (Maybe LabelTypeSubTriple, Maybe LabelTypeSubTriple, Maybe LabelTypeSubTriple)
+
+-- REF1
+-- wrap LabelTypeTuple in an existential type
+data LabelTypeSubTriple = forall a. LabelType a => LabelTypeSubTriple a
+-- END OF REF1
+
 type LabelTypeTuple = (TripleLabelCatgs, RDFLabel)
 -- data LabelType a = URI a | String a | Int a | Bool a
 class    LabelType a      where valToLabel :: a -> RDFLabel
@@ -48,23 +62,36 @@ main :: IO ()
 main = print $ printState emptyState
 
 testing :: IO String
-testing = importFile "../inputs/bar.ttl" "../inputs/foo.ttl"
+testing = importFile "../inputs/bar.ttl" "../inputs/foo.ttl" "../inputs/fooProb5.ttl"
 
 -- Swish version
-importFile :: FilePath -> FilePath -> IO String
-importFile filepath filepath' = do
+importFile :: FilePath -> FilePath -> FilePath -> IO String
+importFile filepath filepath' filepath'' = do
       file <- readFile filepath
       file' <- readFile filepath'
+      file'' <- readFile filepath''
 
       let g = getGraph file
       let g' = getGraph file'
+      let g'' = getGraph file''
       
+      let triple = [(Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), Just (LabelTypeSubTriple False))]
+      let triples = [(Nothing, Nothing, ), (Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), True)]
+      let edited = editGraphs g'' Obj Out 0 99 triple
+      -- let edited' = editGraphs g'' Obj In 0 99
+      
+      edited
+      -- printGraph edited'
+
       printGraphPairManipulations g g'
       -- printLabelTypesOfGraph barGraph
       -- printFilteringTests barGraph
       -- printFilteringTests fooGraph
 
       return ""
+
+editGraphs :: RDFGraph -> TripleLabelCatgs -> Direction -> Integer -> Integer -> [SubTriple] -> IO ()
+editGraphs g catg direction startInt endInt triples = putStrLn "works!"
 
 --------- COMPARING ----------
 compareGraphs :: RDFGraph -> TripleLabelCatgs -> RDFGraph -> TripleLabelCatgs -> RDFGraph
@@ -408,6 +435,11 @@ lTextToStr :: TL.Text -> String
 lTextToStr c = TL.unpack c
 
 ------------------------------
+
+-- REFERENCES
+-- REF1, creating an existential type, author: Fyodor Soikin, accessed April 2022: https://stackoverflow.com/a/52267346/18413650
+
+
 
 -- graphFromFileString :: String -> RDFGraph
 -- graphFromFileString foo = do
