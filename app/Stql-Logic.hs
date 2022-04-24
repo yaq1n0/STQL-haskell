@@ -18,7 +18,6 @@ import Swish.QName (QName, getQNameURI, getNamespace, getLocalName, getQNameURI)
 import Swish.RDF.Ruleset (RDFRuleMap, RDFRulesetMap)
 import Swish.GraphClass (ArcSet, LDGraph, setArcs, getArcs, arcLabels, arcToTriple)
 import Swish.Namespace (Namespace, ScopedName, getScopeNamespace, makeURIScopedName, getScopeLocal, getScopePrefix, getScopeURI, getQName, getScopedNameURI)
-import TurtlePrint (formatGraphAsTextTP, formatGraphAsLazyTextTP, formatGraphIndentTP, formatGraphAsBuilderTP)
   -- MTL IMPORTS
 import Control.Monad.State as CMS (get, put, runStateT, evalStateT, StateT, runState)
 
