@@ -10,22 +10,26 @@ import Data.Maybe (fromJust)
 import qualified Data.Set as S (Set, filter, size, elemAt, toList, fromList)
   -- SWISH IMPORTS
 import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
-import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
+-- import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
 import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, setNamespaces, addArc, merge, toRDFGraph, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels, emptyNamespaceMap)
-import Swish.RDF.Formatter.Turtle (formatGraphAsText, formatGraphIndent, formatGraphAsBuilder)
+import Swish.RDF.Formatter.Turtle (formatGraphAsText, formatGraphAsLazyText, formatGraphIndent, formatGraphAsBuilder)
 import Swish.Commands (swishInput)
 import Swish.QName (QName, getQNameURI, getNamespace, getLocalName, getQNameURI)
 import Swish.RDF.Ruleset (RDFRuleMap, RDFRulesetMap)
 import Swish.GraphClass (ArcSet, LDGraph, setArcs, getArcs, arcLabels, arcToTriple)
 import Swish.Namespace (Namespace, ScopedName, getScopeNamespace, makeURIScopedName, getScopeLocal, getScopePrefix, getScopeURI, getQName, getScopedNameURI)
+import TurtlePrint (formatGraphAsTextTP, formatGraphAsLazyTextTP, formatGraphIndentTP, formatGraphAsBuilderTP)
   -- MTL IMPORTS
-import Control.Monad.State as CMS (get, put, runStateT, evalStateT, StateT)
+import Control.Monad.State as CMS (get, put, runStateT, evalStateT, StateT, runState)
+
 import Control.Monad.State.Lazy (get, return, liftIO, execState, forever)
 import Control.Monad.Reader.Class (ask)
   -- TEXT IMPORTS
-import qualified Data.Text.Lazy as TL (Text, pack, unpack)
+import qualified Data.Text.Lazy as TL (Text, pack, unpack, toStrict)
 import qualified Data.Text as T (Text, pack, unpack, stripPrefix, stripSuffix)
+import qualified Data.Text.Lazy.Builder as B (Builder, toLazyText, fromString)
 import Data.List (nub, (\\))
+
   -- NETWORK IMPORTS
 import Network.URI (URI, parseURI)
 
@@ -58,8 +62,8 @@ instance LabelType Integer where valToLabel = toRDFLabel
 -- instance LabelType Float where valToLabel = toRDFLabel
 
 main :: IO ()
--- main = putStrLn "hello, swish!"
-main = print $ printState emptyState
+main = putStrLn "hello, swish!"
+-- main = print $ printState emptyState
 
 testing :: IO String
 testing = importFile "../inputs/bar.ttl" "../inputs/foo.ttl" "../inputs/fooProb5.ttl"
@@ -72,9 +76,10 @@ importFile filepath filepath' filepath'' = do
 
       let graphs = getGraphs [file, file', file'']
       let expanded = expandGraphs graphs
-      let cleaned = cleanGraphs expanded
+      -- let cleaned = cleanGraphs expanded
+      out (expanded !! 1)
 
-      printProblem5 (cleaned !! 0) (cleaned !! 1) (cleaned !! 2)
+      -- printProblem5 (cleaned !! 0) (cleaned !! 1) (cleaned !! 2)
       -- printGraphPairManipulations (cleaned !! 0) (cleaned !! 1)
       -- printLabelTypesOfGraph barGraph
       -- printFilteringTests barGraph
@@ -327,8 +332,24 @@ fil o arc = arc == o
 ------------------------------
 
 ---------- PRINTING ----------
-printState :: SwishState -> String
-printState s = "format: " ++ show (format s) ++ ", base: " ++ show (base s) ++ ", graph: " ++ show (graph s) ++ ", rules: " ++ show (rules s) ++ ", infomsg: " ++ show (infomsg s) ++ ", errormsg: " ++ show (errormsg s) ++ ", exitcode: " ++ show (exitcode s)
+-- printState :: SwishState -> String
+-- printState s = "format: " ++ show (format s) ++ ", base: " ++ show (base s) ++ ", graph: " ++ show (graph s) ++ ", rules: " ++ show (rules s) ++ ", infomsg: " ++ show (infomsg s) ++ ", errormsg: " ++ show (errormsg s) ++ ", exitcode: " ++ show (exitcode s)
+
+out :: RDFGraph -> IO ()
+out g = putStrLn $ textToStr $ formatGraphAsTextTP g
+
+-- print graph out with predicate/object lists expanded
+printGraphUnbundled :: RDFGraph -> IO ()
+printGraphUnbundled g = out g
+                  where
+                      text = B.toLazyText builder
+                      builder = formatGraphIndentTP (formatGraphAsBuilderTP g) False g
+-- handle =  let fg  = formatGraph indnt " .\n" False flag gr
+--       ngs = emptyNgs { nodeGen = findMaxBnode gr }
+
+-- _formatG 
+-- _formatG setIndent setLineBreak newState formatPrefixes subjs MYFUNCTION "\n" " .\n" False False g
+
 
 printGraphToOut :: RDFGraph -> String
 printGraphToOut g = textToStr $ formatGraphAsText g
@@ -336,9 +357,6 @@ printGraphToOut g = textToStr $ formatGraphAsText g
 -- print Graph into output (with newlines)
 printGraph :: RDFGraph -> IO ()
 printGraph g = putStrLn (textToStr $ formatGraphAsText g)
-
--- TODO: print graph out with predicate/object lists expanded
--- printGraphWPrefixes g = formatGraphIndent (formatGraphAsBuilder g) True g
 
 -- print the Properties of label subject (used for testing)
 printSubjLabelTypesOfArc :: Arc RDFLabel -> IO ()
@@ -472,13 +490,21 @@ printProblem5 g g' g'' = printWrapper "PROBLEM 5" $ do
                           let edited'' = editGraphs g'' In 0 99 triple''
                           putStrLn "EDITED"
                           printGraph edited
-                          printToFile edited "first.ttl"
+                          putStrLn "       Unbundled"
+                          printGraphUnbundled edited
+                          -- printToFile edited "first.ttl"
                           putStrLn "EDITED'"
-                          printToFile edited' "snd.ttl"
+                          -- printToFile edited' "snd.ttl"
                           printGraph edited'
+                          putStrLn "       Unbundled"
+                          printGraphUnbundled edited'
+                          
                           putStrLn "EDITED''"
-                          printToFile edited'' "third.ttl"
                           printGraph edited''
+                          -- printToFile edited'' "third.ttl"
+                          putStrLn "       Unbundled"
+                          printGraphUnbundled edited''
+                          
 -- plain strings dont parse to URI, numbers (in strings) dont either, plain numbers give an error
 -- true/false (in strings) dont parse, plain true/false throw an error
 
@@ -542,7 +568,7 @@ lTextToStr c = TL.unpack c
 
 -- REFERENCES
 -- REF1, creating an existential type, author: Fyodor Soikin, accessed April 2022: https://stackoverflow.com/a/52267346/18413650
-
+-- REF2, Swish documentation, not exported functions from Formatter Turtle module: https://hackage.haskell.org/package/swish-0.10.1.0/docs/src/Swish.RDF.Formatter.Turtle.html#formatGraphAsText
 
 
 -- graphFromFileString :: String -> RDFGraph
