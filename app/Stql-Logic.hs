@@ -11,7 +11,7 @@ import qualified Data.Set as S (Set, filter, size, elemAt, toList, fromList)
   -- SWISH IMPORTS
 import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
 import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
-import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, merge, toRDFGraph, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels)
+import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, addArc, merge, toRDFGraph, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels)
 import Swish.RDF.Formatter.Turtle (formatGraphAsText, formatGraphIndent, formatGraphAsBuilder)
 import Swish.Commands (swishInput)
 import Swish.QName (QName, getQNameURI, getNamespace, getLocalName, getQNameURI)
@@ -29,7 +29,7 @@ import Data.List (nub, (\\))
   -- NETWORK IMPORTS
 import Network.URI (URI, parseURI)
 
-data TripleLabelCatgs = Subj | Pred | Obj
+data Category = Subj | Pred | Obj
 data Combinator = And | Or
 -- direction of filtering a graph's triples' objects with two numbered literals
 data Direction = In | Out
@@ -40,10 +40,10 @@ type SubTriple = (Maybe LabelTypeSubTriple, Maybe LabelTypeSubTriple, Maybe Labe
 
 -- REF1
 -- wrap LabelTypeTuple in an existential type
-data LabelTypeSubTriple = forall a. LabelType a => LabelTypeSubTriple a
+data LabelTypeSubTriple = forall a. LabelType a => LabelTypeSubTriple a | Incr Integer
 -- END OF REF1
 
-type LabelTypeTuple = (TripleLabelCatgs, RDFLabel)
+type LabelTypeTuple = (Category, RDFLabel)
 -- data LabelType a = URI a | String a | Int a | Bool a
 class    LabelType a      where valToLabel :: a -> RDFLabel
 instance LabelType Bool   where valToLabel = toRDFLabel
@@ -74,27 +74,87 @@ importFile filepath filepath' filepath'' = do
       let g = getGraph file
       let g' = getGraph file'
       let g'' = getGraph file''
+      putStrLn "P5 GRAPH"
+      printGraph g''
       
-      let triple = [(Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), Just (LabelTypeSubTriple False))]
-      let triples = [(Nothing, Nothing, ), (Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), True)]
-      let edited = editGraphs g'' Obj Out 0 99 triple
-      -- let edited' = editGraphs g'' Obj In 0 99
+      let triple = (Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), Just (LabelTypeSubTriple False))
+      let triple' = (Nothing, Nothing, Just (Incr 1))
+      let triple'' = (Nothing, Just (LabelTypeSubTriple "http://www.cw.org/problem5/#inRange"), Just (LabelTypeSubTriple True))
       
+      let edited = editGraphs g'' Out 0 99 triple
+      let edited' = editGraphs g'' In 0 99 triple'
+      let edited'' = editGraphs g'' In 0 99 triple''
+      putStrLn "EDITED"
       edited
+      putStrLn "EDITED'"
+      edited'
+      putStrLn "EDITED''"
+      edited''
       -- printGraph edited'
 
-      printGraphPairManipulations g g'
+      -- printGraphPairManipulations g g'
       -- printLabelTypesOfGraph barGraph
       -- printFilteringTests barGraph
       -- printFilteringTests fooGraph
 
       return ""
 
-editGraphs :: RDFGraph -> TripleLabelCatgs -> Direction -> Integer -> Integer -> [SubTriple] -> IO ()
-editGraphs g catg direction startInt endInt triples = putStrLn "works!"
+------- EDITING GRAPHS -------
+editGraphs :: RDFGraph -> Direction -> Integer -> Integer -> SubTriple -> IO ()
+-- editGraphs g (In) startInt endInt triple = putStrLn "works"
+editGraphs g dir startInt endInt triple = do
+                                            -- putStrLn "FILTERED"
+                                            -- printGraph filteredGraph
+                                            -- putStrLn "ARCS TO SUB"
+                                            -- print arcsToSub
+                                            putStrLn "SUBSTITUTED"
+                                            printGraph substituted
+                          where
+                            -- graph to substitute, filtered arcs by constraints
+                            filteredGraph = handleFilterRanges dir startInt endInt g
+                            -- arcs of the graph to substitute
+                            arcsToSub = S.toList $ getArcs filteredGraph
+                            -- do the substitution
+                            substituted = substituteGraph arcsToSub filteredGraph triple
+
+substituteGraph :: [Arc RDFLabel] -> RDFGraph -> SubTriple -> RDFGraph
+substituteGraph [] g triple = g
+substituteGraph arcs@(a:as) g triple = substituteGraph as (substituteArc a g triple) triple
+
+substituteArc :: Arc RDFLabel -> RDFGraph -> SubTriple -> RDFGraph
+substituteArc arcToSub graph triple = do
+                              let strippedGraph = removeRangeArc arcToSub graph
+                              addSubTripleArc triple arcToSub strippedGraph
+
+-- add new triple to the graph, substituting the previous one
+addSubTripleArc :: SubTriple -> Arc RDFLabel -> RDFGraph -> RDFGraph
+addSubTripleArc (t, t', t'') arcToSub g = addGraphArc (arc a a' a'') g
+                                       where
+                                          -- evaluate what values to put in the new arc
+                                          a = arcLbFromSubTriple t (Subj) arcToSub
+                                          a' = arcLbFromSubTriple t' (Pred) arcToSub
+                                          a'' = arcLbFromSubTriple t'' (Obj) arcToSub
+                                        
+arcLbFromSubTriple :: Maybe LabelTypeSubTriple -> Category -> Arc RDFLabel -> RDFLabel
+-- if nothing has changed, return the appropriate value from the previous, substituted arc
+arcLbFromSubTriple (Nothing) catg subbed = getCategoryLabel catg subbed
+-- return the new value of type LabelType
+arcLbFromSubTriple (Just (LabelTypeSubTriple x)) catg subbed = valToLabel x
+-- increment arc object by the specified amount
+arcLbFromSubTriple (Just (Incr i)) catg subbed = valToLabel (prevInt + i)
+                    where prevInt = intValue (getCategoryLabel catg subbed) "arcLbFromSubTriple"
+
+addGraphArc :: Arc RDFLabel -> RDFGraph -> RDFGraph
+addGraphArc arc graph = addArc arc graph
+
+removeRangeArc :: Arc RDFLabel -> RDFGraph -> RDFGraph
+removeRangeArc toDel graph = extract s graph
+                      where
+                        s arc = arc /= toDel
+------------------------------
 
 --------- COMPARING ----------
-compareGraphs :: RDFGraph -> TripleLabelCatgs -> RDFGraph -> TripleLabelCatgs -> RDFGraph
+compareGraphs :: RDFGraph -> Category -> RDFGraph -> Category -> RDFGraph
 compareGraphs g catg g' catg' = merged
                       where
                         -- merge all the filtered graphs
@@ -155,7 +215,7 @@ extractBase base prefix suffix = do
             let sS = fromJust maybesS
             textToStr sS
 
-getCategoryLabel :: TripleLabelCatgs -> Arc RDFLabel -> RDFLabel
+getCategoryLabel :: Category -> Arc RDFLabel -> RDFLabel
 getCategoryLabel (Subj) arc = arcSubj arc
 getCategoryLabel (Pred) arc = arcPred arc
 getCategoryLabel (Obj) arc = arcObj arc
@@ -186,6 +246,11 @@ strToLabel :: String -> RDFLabel
 strToLabel s = case parseURI s of
                     Nothing -> toRDFLabel s
                     Just x -> toRDFLabel x
+
+intValue :: RDFLabel -> String -> Integer
+intValue lb errorTrace = case fromRDFLabel lb of
+                  Nothing -> error ("The label provided in range isn't a number. ErrorTrace: " ++ errorTrace)
+                  Just i -> i
 
 mergeGraphs :: RDFGraph -> RDFGraph -> RDFGraph
 mergeGraphs g g' = merge g g'
@@ -227,14 +292,32 @@ filterByObj :: RDFLabel -> RDFGraph -> RDFGraph
 filterByObj obj graph = extract s graph
             where s arc = arcObj arc == toRDFLabel obj
 
+filterRangesIn :: Integer -> Integer -> RDFGraph -> RDFGraph
+filterRangesIn n n' graph = extract s graph
+            where 
+              val arc = (intValue (arcObj arc) "filterRangesIn first")
+              rangeVal i = (intValue (valToLabel i) "filterRangesIn second")
+              s arc = val arc >= rangeVal n && val arc <= rangeVal n'
+
+filterRangesOut :: Integer -> Integer -> RDFGraph -> RDFGraph
+filterRangesOut n n' graph = extract s graph
+            where 
+              val arc = (intValue (arcObj arc) "filterRangesOut first")
+              rangeVal i = (intValue (valToLabel i) "filterRangesOut second")
+              s arc = val arc < rangeVal n || val arc > rangeVal n'
+
+handleFilterRanges :: Direction -> Integer -> Integer -> RDFGraph -> RDFGraph       
+handleFilterRanges (In) n n' g = filterRangesIn n n' g
+handleFilterRanges (Out) n n' g = filterRangesOut n n' g
+
 -- TODO: doesn't preserve graph prefixes yet
 filterMultiple :: [LabelTypeTuple] -> Combinator -> RDFGraph -> RDFGraph
 filterMultiple as c g = toRDFGraph $ S.fromList $ filterIterateGraphs c [handleFilterLabelTypes labelCat lb g | (labelCat, lb) <- as]
 
-handleFilterLabelTypes :: TripleLabelCatgs -> RDFLabel -> RDFGraph -> RDFGraph
-handleFilterLabelTypes (Subj) lbt g = filterBySubj lbt g
-handleFilterLabelTypes (Pred) lbt g = filterByPred lbt g
-handleFilterLabelTypes (Obj) lbt g = filterByObj lbt g
+handleFilterLabelTypes :: Category -> RDFLabel -> RDFGraph -> RDFGraph
+handleFilterLabelTypes (Subj) lb g = filterBySubj lb g
+handleFilterLabelTypes (Pred) lb g = filterByPred lb g
+handleFilterLabelTypes (Obj) lb g = filterByObj lb g
 
 filterIterateGraphs :: Combinator -> [RDFGraph] -> [Arc RDFLabel]
 filterIterateGraphs (And) gs = getDuplicates [arc | g <- gs, arc <- S.toList $ getArcs g]
