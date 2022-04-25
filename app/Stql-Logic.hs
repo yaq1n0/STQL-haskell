@@ -25,8 +25,8 @@ import Control.Monad.Reader.Class (ask)
   -- TEXT IMPORTS
 import qualified Data.Text.Lazy as TL (Text, pack, unpack, toStrict)
 import qualified Data.Text as T (Text, pack, unpack, stripPrefix, stripSuffix)
-import Data.List (nub, (\\), sort, intersperse)
-
+import Data.List (nub, (\\), sort, intersperse, dropWhileEnd)
+import Data.Char (isSpace)
   -- NETWORK IMPORTS
 import Network.URI (URI, parseURI)
 
@@ -164,14 +164,7 @@ execP5 = do
         _unwrap1 (editGraphs Out 0 99 triple) file'' foo1
         _unwrap1 (editGraphs In 0 99 triple') file'' foo2
         _unwrap1 (editGraphs In 0 99 triple'') file'' foo3
-        putStrLn "SUBBED"
-        printFile foo1
-        putStrLn "SUBBED2"
-        printFile foo2
-        putStrLn "SUBBED3"
-        printFile foo3
         _unwrap3 mergeMultiple foo1 foo2 foo3 out
-        putStrLn "SUBBED4"
         printFile out
 
 p5Test
@@ -243,44 +236,18 @@ _unwrap3 function filepath filepath' filepath'' out = do
                               let final = function graphs
                               graphToFile final out
 
-      -- let dirPath = "./files"
-      -- createDirectoryIfMissing False dirPath
-      
-      -- let newFilepath = dirPath </> filepath
-      -- copyFile filepath newFilepath
-      
-      
-      -- let graphs = getGraphs [file, file', file'']
-      -- let expanded = expandGraphs graphs
-      -- let cleaned = cleanGraphs expanded
-      -- let (g, g', g'') = (cleaned !! 0, cleaned !! 1, cleaned !! 2)
-      -- p2, 3, 4 correct
-      -- printP1 g g'
-      -- printP2 g'
-      -- printP3 g'
-      -- printP4 g g'
-      
-      -- putStrLn $ graphToText (expanded !! 1)
-
-      -- printProblem5 (cleaned !! 0) (cleaned !! 1) (cleaned !! 2)
-      -- printGraphPairManipulations (cleaned !! 0) (cleaned !! 1)
-      -- printLabelTypesOfGraph barGraph
-      -- printFilteringTests barGraph
-      -- printFilteringTests fooGraph
-
-      -- return ""
-
--- out :: RDFGraph -> IO ()
--- out g = putStrLn $ textToStr $ formatGraphAsTextTP g
--- out g = putStrLn $ textToStr $ graphToText g
-
-
 graphFormatOut :: RDFGraph -> String
-graphFormatOut g = unlines recheckForDuplicates
+graphFormatOut g = trim $ unlines recheckForDuplicates
         where
           recheckForDuplicates = nub triplesStringified
           triplesStringified = [(tripleToOut triple) ++ " ." | triple <- sorted]
           sorted = sort $ triples g
+
+-- REF2
+-- trim whitespace from end of string
+trim :: [Char] -> [Char]
+trim = dropWhileEnd isSpace . dropWhile isSpace
+-- END OF REF2
 
 tripleToOut :: (RDFLabel, RDFLabel, RDFLabel) -> String
 tripleToOut (lb, lb', lb'') = lbToOut lb ++ lbToOut lb' ++ lbToOut lb''
@@ -661,4 +628,4 @@ printWrapper msg io = do
 
 -- REFERENCES
 -- REF1, creating an existential type, author: Fyodor Soikin, accessed April 2022: https://stackoverflow.com/a/52267346/18413650
--- REF2, Swish documentation, not exported functions from Formatter Turtle module: https://hackage.haskell.org/package/swish-0.10.1.0/docs/src/Swish.RDF.Formatter.Turtle.html#formatGraphAsText
+-- REF2, trimming whitespace from end of string, author: spopejoy, accessed April 2022, https://stackoverflow.com/a/38283069/18413650
