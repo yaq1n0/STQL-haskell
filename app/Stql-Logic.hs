@@ -75,6 +75,7 @@ importFile filepath filepath' filepath'' = do
       let expanded = expandGraphs graphs
       let cleaned = cleanGraphs expanded
       let (g, g', g'') = (cleaned !! 0, cleaned !! 1, cleaned !! 2)
+      -- p2, 3, 4 correct
       printP1 g g'
       printP2 g'
       printP3 g'
@@ -94,12 +95,10 @@ importFile filepath filepath' filepath'' = do
 -- out g = putStrLn $ textToStr $ formatGraphAsTextTP g
 -- out g = putStrLn $ textToStr $ graphToText g
 
-
-
 graphToString :: RDFGraph -> String
-graphToString g = unlines triplesStringified
+graphToString g = unlines recheckForDuplicates
         where
-          -- intoLines = intersperse "\n" triplesStringified
+          recheckForDuplicates = nub triplesStringified
           triplesStringified = [(tripleToOut triple) ++ " ." | triple <- sorted]
           sorted = sort $ triples g
 
@@ -109,13 +108,11 @@ tripleToOut (lb, lb', lb'') = lbToOut lb ++ lbToOut lb' ++ lbToOut lb''
 lbToOut :: RDFLabel -> String
 lbToOut lb = case isUri lb of
               True -> show lb
-              False -> " " ++ show lb
-                -- case fromRDFLabel lb :: Maybe Integer of
-                --         Just x -> " " ++ show x
-                --         Nothing -> " " ++ show lb
-                          -- case (show lb == "true" || show lb == "false") of
-                          --           True -> " " ++ show lb
-                          --           False -> " \"" ++ show lb ++ "\""
+              False -> case fromRDFLabel lb :: Maybe Integer of
+                            Just x -> " " ++ show x
+                            Nothing -> case (show lb == "true" || show lb == "false") of
+                                            True -> " " ++ show lb
+                                            False -> show lb
 
 triples :: RDFGraph -> [(RDFLabel, RDFLabel, RDFLabel)]
 triples g = [(arcSubj arc, arcPred arc, arcObj arc) | arc <- S.toList $ getArcs g]
