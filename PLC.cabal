@@ -74,7 +74,6 @@ executable PLC
                       array,
                       mtl
 
-
     -- Directories containing source files.
     hs-source-dirs:   app
 
