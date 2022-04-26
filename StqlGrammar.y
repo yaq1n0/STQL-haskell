@@ -1,6 +1,6 @@
 {
 module StqlGrammar where
-import Lexer
+import StqlTokens
 }
 
 %name parseStql
