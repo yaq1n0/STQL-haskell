@@ -97,8 +97,8 @@ p2Test = do
 printP2Extended :: IO ()
 printP2Extended = printWrapper "PROBLEM 2" $ do
                       let (_, file', _, _) = files
-                      contents <- readFile file'
-                      let g = graphFromFile contents
+                      contents <- getFileContents file'
+                      let g = graphFromFileContents contents
 
                       let fs = p2Test
                       putStrLn "1)"
@@ -180,10 +180,14 @@ p5Test = do
 ------------------------------
 
 ------- STRINGIFYING GRAPHS -------
--- created an expanded and cleaned graph from a file
-graphFromFile :: FilePath -> RDFGraph
-graphFromFile filepath = do
-      let orgGraph = getGraph filepath
+-- get file contents from a file
+getFileContents :: FilePath -> IO String
+getFileContents filepath = readFile filepath
+
+-- created an expanded and cleaned graph from file contents
+graphFromFileContents :: String -> RDFGraph
+graphFromFileContents contents = do
+      let orgGraph = getGraph contents
       let expanded = expandTriples orgGraph
       let graph = cleanNamespace expanded
       graph
@@ -201,24 +205,24 @@ printGraphIndented g = putStrLn $ graphFormatOut g
 
 printFile :: FilePath -> IO ()
 printFile f = do
-              contents <- readFile f
+              contents <- getFileContents f
               putStrLn contents
 
 -- executes an RDFGraph function on one file, producing an out file
 _unwrap1 :: (RDFGraph -> RDFGraph) -> FilePath -> FilePath -> IO ()
 _unwrap1 function filepath out = do
-                              contents <- readFile filepath
-                              let g = graphFromFile contents
+                              c <- getFileContents filepath
+                              let g = graphFromFileContents c
                               let final = function g
                               graphToFile final out
 
 -- executes an RDFGraph function on two files, producing an out file
 _unwrap2 :: (RDFGraph -> RDFGraph -> RDFGraph) -> FilePath -> FilePath -> FilePath -> IO ()
 _unwrap2 function filepath filepath' out = do
-                              contents <- readFile filepath
-                              contents' <- readFile filepath'
-                              let g = graphFromFile contents
-                              let g' = graphFromFile contents'
+                              c <- getFileContents filepath
+                              c' <- getFileContents filepath'
+                              let g = graphFromFileContents c
+                              let g' = graphFromFileContents c'
                               let final = function g g'
                               graphToFile final out
 
@@ -226,12 +230,12 @@ _unwrap2 function filepath filepath' out = do
 -- only handles functions that accept a list of graphs
 _unwrap3 :: ([RDFGraph] -> RDFGraph) -> FilePath -> FilePath -> FilePath -> FilePath -> IO ()
 _unwrap3 function filepath filepath' filepath'' out = do
-                              contents <- readFile filepath
-                              contents' <- readFile filepath'
-                              contents'' <- readFile filepath''
-                              let g = graphFromFile contents
-                              let g' = graphFromFile contents'
-                              let g'' = graphFromFile contents''
+                              c <- getFileContents filepath
+                              c' <- getFileContents filepath'
+                              c'' <- getFileContents filepath''
+                              let g = graphFromFileContents c
+                              let g' = graphFromFileContents c'
+                              let g'' = graphFromFileContents c''
                               let graphs = [g, g', g'']
                               let final = function graphs
                               graphToFile final out
