@@ -1,0 +1,51 @@
+pr1.stql
+NEW out1.ttl
+
+MERGE foo.ttl bar.ttl out1.ttl
+
+PRINT out1.ttl
+
+pr2.stql
+NEW out2.ttl
+
+FILTER SUBJ foo.ttl == STR "http://www.cw.org/#problem2" TO foo.ttl
+FILTER OBJ foo.tll == BOOL TRUE TO out2.ttl
+
+PRINT out2.ttl
+
+pr3.stql
+NEW out3.ttl
+
+FILTER PRED foo.ttl == STR "http://www.cw.org/problem3/#predicate1" TO out3.ttl
+FILTER PRED foo.ttl == STR "http://www.cw.org/problem3/#predicate2" TO out3.ttl
+FILTER PRED foo.ttl == STR "http://www.cw.org/problem3/#predicate3" TO out3.ttl
+
+PRINT out3.ttl
+
+pr4.stql
+NEW out4.ttl
+
+FILTER SUBJ bar.ttl == OBJ foo.ttl TO out4.ttl
+FILTER SUBJ foo.ttl == OBJ bar.ttl TO out4.ttl
+
+PRINT out4.ttl
+
+pr5.stql
+NEW foo1.ttl
+NEW foo2.ttl
+NEW foo3.ttl
+NEW out5.ttl
+
+FILTER OBJ foo.ttl < NUM 0 TO foo1.ttl
+FILTER OBJ foo.ttl > NUM 99 TO foo1.ttl
+SETALL OBJ foo1.ttl BOOL FALSE
+
+FILTER OBJ foo.ttl >= NUM 0 TO foo2.ttl
+FILTER OBJ foo.ttl <= NUM 99 TO foo2.ttl
+SETALL OBJ foo2.ttl BOOL FALSE
+
+FILTER OBJ foo.ttl >= NUM 0 TO foo3.ttl
+FILTER OBJ foo.ttl <= NUM 99 TO foo3.ttl
+INCRALL OBJ foo3.ttl NUM 1
+
+MERGE foo1.ttl foo2.ttl foo3.ttl TO out5.ttl

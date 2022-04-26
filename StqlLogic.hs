@@ -3,12 +3,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
+
+module StqlLogic where
 -- IMPORTS
-  -- HASKELL BASE IMPORTS
+-- HASKELL BASE IMPORTS
 import Data.List (isPrefixOf, isSuffixOf)
 import Data.Maybe (fromJust)
 import qualified Data.Set as S (Set, filter, size, elemAt, toList, fromList)
-  -- SWISH IMPORTS
+-- SWISH IMPORTS
 import Swish.RDF.Parser.Turtle (ParseResult, parseTurtle, parseTurtlefromText)
 -- import Swish.Monad (SwishState, SwishStatus, SwishStateIO, emptyState, setFormat, setInfo, SwishFormat (Turtle), NamedGraphMap, format, base, graph, graphs, rules, rulesets, infomsg, errormsg, exitcode)
 import Swish.RDF.Graph (RDFGraph, RDFLabel(Res), NamespaceMap, NSGraph, Arc, Selector, ToRDFLabel, RDFTriple, fromRDFTriple, setNamespaces, addArc, merge, toRDFGraph, fmapNSGraph, traverseNSGraph, arc, emptyRDFGraph, toRDFLabel, nodes, getNamespaces, extract, arcSubj, arcPred, arcObj, allLabels, fromRDFLabel, update, isLiteral, isUntypedLiteral, isTypedLiteral, isXMLLiteral, isDatatyped, isUri, getLiteralText, getScopedName, remapLabels, labels, emptyNamespaceMap)
@@ -64,7 +66,7 @@ main = putStrLn "works!"
 ---------- PROBLEMS ----------
   -- SETUP
 files :: (FilePath, FilePath, FilePath, FilePath)
-files = ("bar.ttl", "foo.ttl", "fooProb5.ttl", "out.ttl") 
+files = ("bar.ttl", "foo.ttl", "fooProb5.ttl", "out.ttl")
 
   -- P1
 printP1 :: IO ()
@@ -260,7 +262,7 @@ _unwrap21 function filepath filepath' filepath'' out = do
                               let final = function g g' g''
 
 _unwrap22 :: ((RDFGraph -> RDFGraph -> RDFGraph) -> (RDFGraph -> RDFGraph -> RDFGraph) -> RDFGraph) -> FilePath -> FilePath -> FilePath -> FilePath -> FilePath -> IO ()
-_unwrap4 function filepath filepath' filepath'' filepath''' out = do
+_unwrap22 function filepath filepath' filepath'' filepath''' out = do
                               contents <- readFile filepath
                               contents' <- readFile filepath'
                               contents'' <- readFile filepath''
@@ -339,7 +341,7 @@ addSubTripleArc (t, t', t'') arcToSub g = addGraphArc (arc a a' a'') g
                                           a = arcLbFromSubTriple t (Subj) arcToSub
                                           a' = arcLbFromSubTriple t' (Pred) arcToSub
                                           a'' = arcLbFromSubTriple t'' (Obj) arcToSub
-                                        
+
 arcLbFromSubTriple :: Maybe LabelTypeSubTriple -> Category -> Arc RDFLabel -> RDFLabel
 -- if nothing has changed, return the appropriate value from the previous, substituted arc
 arcLbFromSubTriple (Nothing) catg subbed = getCategoryLabel catg subbed
@@ -423,14 +425,14 @@ getGraph contents = case (parseIntoTurtle contents (getBase contents)) of
 parseIntoTurtle :: String -> Maybe URI -> ParseResult
 parseIntoTurtle foo base = parseTurtle (strToLText foo) base
 
--- get the base value from a turtle file 
+-- get the base value from a turtle file
 getBase :: String -> Maybe URI
 getBase foo = do
             let prefix = "@base <"
             let suffix = "> ."
 
             let bases = Prelude.filter (isBase prefix suffix) $ lines foo
-            
+
             case bases of
               [] -> Nothing
               [a] -> Just (toURI $ extractBase a prefix suffix)
@@ -521,14 +523,14 @@ filterByAll (subj, pred, obj) graph = extract s graph
 
 filterRangesIn :: Integer -> Integer -> RDFGraph -> RDFGraph
 filterRangesIn n n' graph = extract s graph
-            where 
+            where
               val arc = (intValue (arcObj arc) "filterRangesIn first")
               rangeVal i = (intValue (valToLabel i) "filterRangesIn second")
               s arc = val arc >= rangeVal n && val arc <= rangeVal n'
 
 filterRangesOut :: Integer -> Integer -> RDFGraph -> RDFGraph
 filterRangesOut n n' graph = extract s graph
-            where 
+            where
               val arc = (intValue (arcObj arc) "filterRangesOut first")
               rangeVal i = (intValue (valToLabel i) "filterRangesOut second")
               s arc = val arc < rangeVal n || val arc > rangeVal n'
@@ -555,7 +557,7 @@ filterLTGT n (True, True) graph = extract s graph
               rangeVal i = (intValue (valToLabel i) "filterRangesLT second")
               s arc = val arc >= rangeVal n
 
-handleFilterRanges :: Direction -> Integer -> Integer -> RDFGraph -> RDFGraph       
+handleFilterRanges :: Direction -> Integer -> Integer -> RDFGraph -> RDFGraph
 handleFilterRanges (In) n n' g = filterRangesIn n n' g
 handleFilterRanges (Out) n n' g = filterRangesOut n n' g
 
@@ -652,7 +654,7 @@ printLabelTypesOfGraph rdfGraph = printWrapper "GRAPH PROPERTIES" $ do
                   -- printGraph rdfGraph
                   -- putStrLn "\nLABELS:"
                   -- print $ _labels rdfGraph
-                            
+
 printFilteringTests :: NSGraph RDFLabel -> IO ()
 printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
                     putStrLn "FILTERED BY OBJECT:"
@@ -667,7 +669,7 @@ printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
                     putStrLn "Booleans"
                     print $ valToLabel True
                     print $ valToLabel False
-                    
+
                     putStrLn "First arc from graph:"
                     let eh = S.elemAt 2 (getArcs rdfGraph)
                     print eh
@@ -687,11 +689,11 @@ printFilteringTests rdfGraph = printWrapper "FILTERING TESTS" $ do
 
                     putStrLn "\nEquality between test and graph arc?:"
                     print $ fil testArc eh
-                    
+
                     putStrLn "\n\nEXPANDED:"
                     let expanded = expandTriples rdfGraph
                     printGraph expanded
-                          
+
 -- plain strings dont parse to URI, numbers (in strings) dont either, plain numbers give an error
 -- true/false (in strings) dont parse, plain true/false throw an error
 
