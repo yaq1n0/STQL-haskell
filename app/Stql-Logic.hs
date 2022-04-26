@@ -240,6 +240,38 @@ _unwrap3 function filepath filepath' filepath'' out = do
                               let final = function graphs
                               graphToFile final out
 
+_unwrap11 :: ((RDFGraph -> RDFGraph) -> (RDFGraph -> RDFGraph) -> RDFGraph) -> FilePath -> FilePath -> FilePath -> IO ()
+_unwrap11 function filepath filepath' out = do
+                              contents <- readFile filepath
+                              contents' <- readFile filepath'
+                              let g = graphFromFile contents
+                              let g' = graphFromFile contents'
+                              let final = function g g'
+
+
+_unwrap21 :: ((RDFGraph -> RDFGraph -> RDFGraph) -> (RDFGraph -> RDFGraph) -> RDFGraph) -> FilePath -> FilePath -> FilePath -> FilePath -> IO ()
+_unwrap21 function filepath filepath' filepath'' out = do
+                              contents <- readFile filePath
+                              contents' <- readFile filepath'
+                              contents'' <- readFile filepath''
+                              let g = graphFromFile contents
+                              let g' = graphFromFile contents'
+                              let g'' = graphFromFile contents''
+                              let final = function g g' g''
+
+_unwrap22 :: ((RDFGraph -> RDFGraph -> RDFGraph) -> (RDFGraph -> RDFGraph -> RDFGraph) -> RDFGraph) -> FilePath -> FilePath -> FilePath -> FilePath -> FilePath -> IO ()
+_unwrap4 function filepath filepath' filepath'' filepath''' out = do
+                              contents <- readFile filepath
+                              contents' <- readFile filepath'
+                              contents'' <- readFile filepath''
+                              contents''' <- readFile filepath'''
+                              let g = graphFromFile contents
+                              let g' = graphFromFile contents'
+                              let g'' = graphFromFile contents''
+                              let g''' = graphFromFile contents'''
+                              let final = function g g' g'' g'''
+                              graphToFile final out
+
 graphFormatOut :: RDFGraph -> String
 graphFormatOut g = trim $ unlines recheckForDuplicates
         where
@@ -286,6 +318,9 @@ editGraphs dir startInt endInt triple g = substituted
                             arcsToSub = S.toList $ getArcs filteredGraph
                             -- do the substitution
                             substituted = substituteGraph arcsToSub filteredGraph triple
+
+editFullGraphs :: SubTriple -> RDFGraph -> RDFGraph
+editFullGraphs triple g = substituteGraph (S.toList $ getArcs g) g triple
 
 substituteGraph :: [Arc RDFLabel] -> RDFGraph -> SubTriple -> RDFGraph
 substituteGraph [] g triple = g
@@ -337,6 +372,20 @@ compareGraphs catg catg' g g' = merged
                         -- all (subj OR pred OR obj) of the first and second graphs, respectively
                         firstCatgs = [getCategoryLabel catg arcg | arcg <- S.toList $ getArcs g]
                         sndCatgs = [getCategoryLabel catg' arcg' | arcg' <- S.toList $ getArcs g']
+
+compareFullGraphs :: RDFGraph -> RDFGraph -> RDFGraph
+compareFullGraphs g g' = merged
+                      where
+                        -- merge all the filtered graphs
+                        merged = mergeMultiple filtered
+                        filtered = tuplesToList filteredTupled
+                        -- filter both graphs by the matches between those graphs' lists of (subj OR pred OR obj)
+                        filteredTupled = [(filterByAll d g, filterByAll d g') | d <- duplicates firstCatgs sndCatgs]
+                        -- all the matches between the (subj OR pred OR obj) lists of both graphs
+                        duplicates xs ys = filter (\x -> (x `elem` ys)) xs
+                        -- all (subj OR pred OR obj) of the first and second graphs, respectively
+                        firstCatgs = [arcg | arcg <- S.toList $ getArcs g]
+                        sndCatgs = [arcg' | arcg' <- S.toList $ getArcs g']
 
 mergeMultiple :: [RDFGraph] -> RDFGraph
 mergeMultiple [] = createGraph
@@ -466,6 +515,10 @@ filterByObj :: RDFLabel -> RDFGraph -> RDFGraph
 filterByObj obj graph = extract s graph
             where s arc = arcObj arc == toRDFLabel obj
 
+filterByAll :: Arc RDFLabel -> RDFGraph -> RDFGraph
+filterByAll (subj, pred, obj) graph = extract s graph
+            where s arc = arcSubj arc == allowURIOnly subj && arcPred arc == allowURIOnly pred && arcObj arc == toRDFLabel obj
+
 filterRangesIn :: Integer -> Integer -> RDFGraph -> RDFGraph
 filterRangesIn n n' graph = extract s graph
             where 
@@ -479,6 +532,28 @@ filterRangesOut n n' graph = extract s graph
               val arc = (intValue (arcObj arc) "filterRangesOut first")
               rangeVal i = (intValue (valToLabel i) "filterRangesOut second")
               s arc = val arc < rangeVal n || val arc > rangeVal n'
+
+filterLTGT :: Integer -> (Bool, Bool) -> RDFGraph -> RDFGraph
+filterLTGT n (False, False) graph = extract s graph
+            where
+              val arc = (intValue (arcObj arc) "filterRangesLT first")
+              rangeVal i = (intValue (valToLabel i) "filterRangesLT second")
+              s arc = val arc < rangeVal n
+filterLTGT n (False, True) graph = extract s graph
+            where
+              val arc = (intValue (arcObj arc) "filterRangesLT first")
+              rangeVal i = (intValue (valToLabel i) "filterRangesLT second")
+              s arc = val arc <= rangeVal n
+filterLTGT n (True, False) graph = extract s graph
+            where
+              val arc = (intValue (arcObj arc) "filterRangesLT first")
+              rangeVal i = (intValue (valToLabel i) "filterRangesLT second")
+              s arc = val arc > rangeVal n
+filterLTGT n (True, True) graph = extract s graph
+            where
+              val arc = (intValue (arcObj arc) "filterRangesLT first")
+              rangeVal i = (intValue (valToLabel i) "filterRangesLT second")
+              s arc = val arc >= rangeVal n
 
 handleFilterRanges :: Direction -> Integer -> Integer -> RDFGraph -> RDFGraph       
 handleFilterRanges (In) n n' g = filterRangesIn n n' g
