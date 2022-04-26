@@ -1,5 +1,5 @@
 {
-module Lexer where
+module StqlTokens where
 }
 
 %wrapper "basic"

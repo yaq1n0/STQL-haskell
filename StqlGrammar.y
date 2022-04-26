@@ -1,5 +1,5 @@
 {
-module Parser where
+module StqlGrammar where
 import Lexer
 }
 
