@@ -23,7 +23,7 @@ catToCat ObjCat = Obj
 
 strToLB :: StqlLit -> String -> RDFLabel
 strToLB LitStr s = toRDFLabel s
-strToLB LitNum s = toRDFLabel (read s::String)
+strToLB LitNum s = toRDFLabel (read s::Int)
 strToLB LitBool "TRUE" = toRDFLabel True
 strToLB LitBool "FALSE" = toRDFLabel False
 

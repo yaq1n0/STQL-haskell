@@ -5,11 +5,12 @@ import StqlEval
 import Control.Exception
 import System.Environment
 
-recurse [] = putStrLn "EOF"
-recurse (l : ls) = if (length ls > 0) then exec l
-                   else recurse ls
+execLoop :: [StqlExp] -> IO ()
+execLoop [] = putStrLn "EOF"
+execLoop (x : xs) = do exec x
+                       execLoop xs
 
-main :: IO()
+main :: IO ()
 main = do (fileName : _ ) <- getArgs
           sourceText <- readFile fileName
 
@@ -22,4 +23,4 @@ main = do (fileName : _ ) <- getArgs
           let parsed = map parseStql lexed
           putStrLn ("Parsed as: \n" ++ (show parsed) ++ "\n")
 
-          recurse parsed
+          execLoop parsed
