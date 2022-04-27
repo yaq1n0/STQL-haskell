@@ -6,6 +6,7 @@
 # compilation stuff
 Main
 Stql
+StqlInterpreter
 
 # Haskell-specific files
 dist
