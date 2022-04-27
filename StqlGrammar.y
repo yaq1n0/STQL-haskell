@@ -72,4 +72,5 @@ data StqlExp = New String | Print String
                | Merge3 String String String String
                | SetAll StqlCat String StqlLit String
                | IncrAll StqlCat String StqlLit String
+               deriving (Show, Eq)
 }

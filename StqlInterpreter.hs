@@ -13,20 +13,13 @@ main :: IO()
 main = do (fileName : _ ) <- getArgs
           sourceText <- readFile fileName
 
-          {-
-          recurse (lines sourceText)
-          let exprs = lines sourceText
-          let tokens = map alexScanTokens exprs
-          putStrLn (show tokens)
-          -}
-
-          exec (parseStql (alexScanTokens "NEW out1.ttl"))
-          {-
+          let _lines = filter (not . null) (lines sourceText)
           putStrLn ("Input: \n" ++ sourceText ++ "\n")
-          let lexed =  map alexScanTokens (lines sourceText)
-          putStrLn ("Lexed as: \n" ++ "\n")
+
+          let lexed = map alexScanTokens _lines
+          putStrLn ("Lexed as: \n" ++ (show lexed) ++ "\n")
+
           let parsed = map parseStql lexed
-          putStrLn ("Parsed as: \n" ++ "\n")
-          let result = recurse parsed
-          putStrLn ("Evaluates to: \n " ++ "\n")
-          -}
+          putStrLn ("Parsed as: \n" ++ (show parsed) ++ "\n")
+
+          recurse parsed

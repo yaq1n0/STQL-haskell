@@ -9,6 +9,10 @@ main = do (fileName : _ ) <- getArgs
           callCommand "cabal install --lib --package-env . swish utf8-string mtl text array network-uri --allow-newer=base"
           callCommand "cabal build --allow-newer=base"
 
+          -- alex and happy
+          callCommand "alex StqlTokens.x"
+          callCommand "happy StqlGrammar.y"
+
           -- compile interpreter and pass the fileName to it
           callCommand "ghc StqlInterpreter.hs"
           callCommand ("./StqlInterpreter " ++ fileName)

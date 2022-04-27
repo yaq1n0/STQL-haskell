@@ -193,7 +193,7 @@ action_46 _ = happyReduce_3
 action_47 _ = happyReduce_4
 
 happyReduce_1 = happySpecReduce_2  4 happyReduction_1
-happyReduction_1 (HappyTerminal (TokenPath _ happy_var_2))
+happyReduction_1 (HappyTerminal (TokenPath happy_var_2))
 	_
 	 =  HappyAbsSyn4
 		 (New happy_var_2
@@ -201,7 +201,7 @@ happyReduction_1 (HappyTerminal (TokenPath _ happy_var_2))
 happyReduction_1 _ _  = notHappyAtAll 
 
 happyReduce_2 = happySpecReduce_2  4 happyReduction_2
-happyReduction_2 (HappyTerminal (TokenPath _ happy_var_2))
+happyReduction_2 (HappyTerminal (TokenPath happy_var_2))
 	_
 	 =  HappyAbsSyn4
 		 (Print happy_var_2
@@ -209,12 +209,12 @@ happyReduction_2 (HappyTerminal (TokenPath _ happy_var_2))
 happyReduction_2 _ _  = notHappyAtAll 
 
 happyReduce_3 = happyReduce 8 4 happyReduction_3
-happyReduction_3 ((HappyTerminal (TokenPath _ happy_var_8)) `HappyStk`
+happyReduction_3 ((HappyTerminal (TokenPath happy_var_8)) `HappyStk`
 	_ `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_6)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_6)) `HappyStk`
 	(HappyAbsSyn7  happy_var_5) `HappyStk`
 	(HappyAbsSyn5  happy_var_4) `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_3)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_3)) `HappyStk`
 	(HappyAbsSyn7  happy_var_2) `HappyStk`
 	_ `HappyStk`
 	happyRest)
@@ -223,12 +223,12 @@ happyReduction_3 ((HappyTerminal (TokenPath _ happy_var_8)) `HappyStk`
 	) `HappyStk` happyRest
 
 happyReduce_4 = happyReduce 8 4 happyReduction_4
-happyReduction_4 ((HappyTerminal (TokenPath _ happy_var_8)) `HappyStk`
+happyReduction_4 ((HappyTerminal (TokenPath happy_var_8)) `HappyStk`
 	_ `HappyStk`
-	(HappyTerminal (TokenVar _ happy_var_6)) `HappyStk`
+	(HappyTerminal (TokenVar happy_var_6)) `HappyStk`
 	(HappyAbsSyn6  happy_var_5) `HappyStk`
 	(HappyAbsSyn5  happy_var_4) `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_3)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_3)) `HappyStk`
 	(HappyAbsSyn7  happy_var_2) `HappyStk`
 	_ `HappyStk`
 	happyRest)
@@ -237,10 +237,10 @@ happyReduction_4 ((HappyTerminal (TokenPath _ happy_var_8)) `HappyStk`
 	) `HappyStk` happyRest
 
 happyReduce_5 = happyReduce 5 4 happyReduction_5
-happyReduction_5 ((HappyTerminal (TokenPath _ happy_var_5)) `HappyStk`
+happyReduction_5 ((HappyTerminal (TokenPath happy_var_5)) `HappyStk`
 	_ `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_3)) `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_2)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_3)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_2)) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn4
@@ -248,11 +248,11 @@ happyReduction_5 ((HappyTerminal (TokenPath _ happy_var_5)) `HappyStk`
 	) `HappyStk` happyRest
 
 happyReduce_6 = happyReduce 6 4 happyReduction_6
-happyReduction_6 ((HappyTerminal (TokenPath _ happy_var_6)) `HappyStk`
+happyReduction_6 ((HappyTerminal (TokenPath happy_var_6)) `HappyStk`
 	_ `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_4)) `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_3)) `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_2)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_4)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_3)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_2)) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn4
@@ -260,9 +260,9 @@ happyReduction_6 ((HappyTerminal (TokenPath _ happy_var_6)) `HappyStk`
 	) `HappyStk` happyRest
 
 happyReduce_7 = happyReduce 5 4 happyReduction_7
-happyReduction_7 ((HappyTerminal (TokenVar _ happy_var_5)) `HappyStk`
+happyReduction_7 ((HappyTerminal (TokenVar happy_var_5)) `HappyStk`
 	(HappyAbsSyn6  happy_var_4) `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_3)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_3)) `HappyStk`
 	(HappyAbsSyn7  happy_var_2) `HappyStk`
 	_ `HappyStk`
 	happyRest)
@@ -271,9 +271,9 @@ happyReduction_7 ((HappyTerminal (TokenVar _ happy_var_5)) `HappyStk`
 	) `HappyStk` happyRest
 
 happyReduce_8 = happyReduce 5 4 happyReduction_8
-happyReduction_8 ((HappyTerminal (TokenVar _ happy_var_5)) `HappyStk`
+happyReduction_8 ((HappyTerminal (TokenVar happy_var_5)) `HappyStk`
 	(HappyAbsSyn6  happy_var_4) `HappyStk`
-	(HappyTerminal (TokenPath _ happy_var_3)) `HappyStk`
+	(HappyTerminal (TokenPath happy_var_3)) `HappyStk`
 	(HappyAbsSyn7  happy_var_2) `HappyStk`
 	_ `HappyStk`
 	happyRest)
@@ -353,28 +353,28 @@ happyNewToken action sts stk [] =
 happyNewToken action sts stk (tk:tks) =
 	let cont i = action i i tk (HappyState action) sts stk tks in
 	case tk of {
-	TokenNew _ -> cont 8;
-	TokenMerge _ -> cont 9;
-	TokenPrint _ -> cont 10;
-	TokenFilter _ -> cont 11;
-	TokenTo _ -> cont 12;
-	TokenSetAll _ -> cont 13;
-	TokenIncrAll _ -> cont 14;
-	TokenSubj _ -> cont 15;
-	TokenPred _ -> cont 16;
-	TokenObj _ -> cont 17;
-	TokenString _ -> cont 18;
-	TokenNum _ -> cont 19;
-	TokenBool _ -> cont 20;
-	TokenTrue _ -> cont 21;
-	TokenFalse _ -> cont 22;
-	TokenEQ _ -> cont 23;
-	TokenGT _ -> cont 24;
-	TokenLT _ -> cont 25;
-	TokenGTE _ -> cont 26;
-	TokenLTE _ -> cont 27;
-	TokenPath _ happy_dollar_dollar -> cont 28;
-	TokenVar _ happy_dollar_dollar -> cont 29;
+	TokenNew -> cont 8;
+	TokenMerge -> cont 9;
+	TokenPrint -> cont 10;
+	TokenFilter -> cont 11;
+	TokenTo -> cont 12;
+	TokenSetAll -> cont 13;
+	TokenIncrAll -> cont 14;
+	TokenSubj -> cont 15;
+	TokenPred -> cont 16;
+	TokenObj -> cont 17;
+	TokenString -> cont 18;
+	TokenNum -> cont 19;
+	TokenBool -> cont 20;
+	TokenTrue -> cont 21;
+	TokenFalse -> cont 22;
+	TokenEQ -> cont 23;
+	TokenGT -> cont 24;
+	TokenLT -> cont 25;
+	TokenGTE -> cont 26;
+	TokenLTE -> cont 27;
+	TokenPath happy_dollar_dollar -> cont 28;
+	TokenVar happy_dollar_dollar -> cont 29;
 	_ -> happyError' ((tk:tks), [])
 	}
 
@@ -426,6 +426,7 @@ data StqlExp = New String | Print String
                | Merge3 String String String String
                | SetAll StqlCat String StqlLit String
                | IncrAll StqlCat String StqlLit String
+               deriving (Show, Eq)
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 -- $Id: GenericTemplate.hs,v 1.26 2005/01/14 14:47:22 simonmar Exp $
 

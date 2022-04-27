@@ -3,14 +3,11 @@ module StqlTokens where
 }
 
 %wrapper "basic"
-$digit = 0-9
--- digits
-$alpha = [a-zA-Z]
--- alphabet
+$alpha = [a-zA-Z0-9]
 
 tokens :-
 $white+    ;
-  "//".*     ;
+  "--".*     ;
   NEW        { \s -> TokenNew}
   PRINT      { \s -> TokenPrint}
   MERGE      { \s -> TokenMerge}
@@ -31,8 +28,8 @@ $white+    ;
   \<         { \s -> TokenLT}
   \>=        { \s -> TokenGTE}
   \<=        { \s -> TokenLTE}
-  .+\.ttl    { \s -> TokenPath (read s)}
-  $alpha [$alpha $digit \_ \’]*   { \s -> TokenVar (read s)}
+  $alpha+\.ttl    { \s -> TokenPath s}
+  $alpha+   { \s -> TokenVar s}
 
 {
 data Token =

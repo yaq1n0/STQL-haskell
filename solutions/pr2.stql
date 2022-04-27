@@ -1,5 +1,6 @@
-IMPORT foo foo.ttl
-NEW out out2.ttl
+NEW out2.ttl
 
-WHERE foo.subj == "thing" AND foo.obj == "other thing"
-ADDTO out foo.all 
+FILTER SUBJ foo.ttl == STR "http://www.cw.org/#problem2" TO foo.ttl
+FILTER OBJ foo.tll == BOOL TRUE TO out2.ttl
+
+PRINT out2.ttl
