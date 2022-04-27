@@ -35,13 +35,16 @@ compToBools CompGTE = (True, True)
 
 exec :: StqlExp -> IO ()
 exec (New s) = writeFile s ""
-
 exec (Print s) = printFile s
 
+-- compare two graphs based on two label categories
 exec (FilterC c0 s0 CompEQ c1 s1 out) = _unwrap2 (compareGraphs (catToCat c0) (catToCat c1)) s0 s1 out
-exec (FilterL c0 s0 CompEQ l1 s1 out) = _unwrap1 (handleFilterLabelTypes (catToCat c0) (strToLB l1 s1)) s0 out
+-- filter graph by label category
+exec (FilterL c0 s0 CompEQ l1 s1 out) = _unwrap1 (filterWithLabelTypes (catToCat c0) (strToLB l1 s1)) s0 out
+-- filter graph by a number in the object category
 exec (FilterL ObjCat s0 comp LitNum s1 out) = _unwrap1 (filterLTGT (read s1) (compToBools comp)) s0 out
 
+-- merge 2 or 3 graphs
 exec (Merge2 s0 s1 out) = _unwrap2 mergeGraphs s0 s1 out
 exec (Merge3 s0 s1 s2 out) = _unwrap3 mergeMultiple s0 s1 s2 out
 

@@ -370,7 +370,7 @@ compareGraphs catg catg' g g' = merged
                         merged = mergeMultiple filtered
                         filtered = tuplesToList filteredTupled
                         -- filter both graphs by the matches between those graphs' lists of (subj OR pred OR obj)
-                        filteredTupled = [(handleFilterLabelTypes catg d g, handleFilterLabelTypes catg' d g') | d <- duplicates firstCatgs sndCatgs]
+                        filteredTupled = [(filterWithLabelTypes catg d g, filterWithLabelTypes catg' d g') | d <- duplicates firstCatgs sndCatgs]
                         -- all the matches between the (subj OR pred OR obj) lists of both graphs
                         duplicates xs ys = filter (\x -> (x `elem` ys)) xs
                         -- all (subj OR pred OR obj) of the first and second graphs, respectively
@@ -570,12 +570,12 @@ handleFilterRanges (Out) n n' g = filterRangesOut n n' g
 filterMultiple :: [LabelTypeTuple] -> Combinator -> RDFGraph -> RDFGraph
 filterMultiple filters c g = toRDFGraph $ S.fromList $ filterIterateGraphs c filteredGraphs
                   where
-                    filteredGraphs = [handleFilterLabelTypes labelCat lb g | (labelCat, lb) <- filters]
+                    filteredGraphs = [filterWithLabelTypes labelCat lb g | (labelCat, lb) <- filters]
 
-handleFilterLabelTypes :: Category -> RDFLabel -> RDFGraph -> RDFGraph
-handleFilterLabelTypes (Subj) lb g = filterBySubj lb g
-handleFilterLabelTypes (Pred) lb g = filterByPred lb g
-handleFilterLabelTypes (Obj) lb g = filterByObj lb g
+filterWithLabelTypes :: Category -> RDFLabel -> RDFGraph -> RDFGraph
+filterWithLabelTypes (Subj) lb g = filterBySubj lb g
+filterWithLabelTypes (Pred) lb g = filterByPred lb g
+filterWithLabelTypes (Obj) lb g = filterByObj lb g
 
 filterIterateGraphs :: Combinator -> [RDFGraph] -> [Arc RDFLabel]
 filterIterateGraphs (And) gs = getDuplicates $ combinedArcs gs
