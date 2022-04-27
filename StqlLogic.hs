@@ -161,12 +161,12 @@ printP5 = printWrapper "PROBLEM 5" execP5
 execP5 :: IO ()
 execP5 = do
         let (_, _, file'', out) = files
-        let (foo1, foo2, foo3) = ("foo1.ttl", "foo2.ttl", "foo3.ttl")
+        -- let (foo1, foo2, foo3) = ("foo1.ttl", "foo2.ttl", "foo3.ttl")
         let (triple, triple', triple'') = p5Test
-        _unwrap1 (editGraphs Out 0 99 triple) file'' foo1
-        _unwrap1 (editGraphs In 0 99 triple') file'' foo2
-        _unwrap1 (editGraphs In 0 99 triple'') file'' foo3
-        _unwrap3 mergeMultiple foo1 foo2 foo3 out
+        _unwrap1 (editGraphs Out 0 99 triple) file'' out
+        _unwrap1 (editGraphs In 0 99 triple') file'' out
+        _unwrap1 (editGraphs In 0 99 triple'') file'' out
+        -- _unwrap3 mergeMultiple foo1 foo2 foo3 out
         printFile out
 
 p5Test
@@ -194,8 +194,18 @@ graphFromFileContents contents = do
       let graph = cleanNamespace expanded
       graph
 
-graphToFile :: RDFGraph -> FilePath -> IO ()
-graphToFile g filepath = writeFile filepath (graphFormatOut g)
+appendGraphToFile :: RDFGraph -> FilePath -> IO ()
+appendGraphToFile g filepath = do
+                          contents <- getFileContents filepath
+                          let g' = graphFromFileContents contents
+                          let merged = mergeGraphs g g'
+                          -- forcing lazy evaluation to take care of the contents
+                          writeFile "tmp.ttl" contents
+                          
+                          writeFile filepath (graphFormatOut merged)
+
+writeGraphToFile :: RDFGraph -> FilePath -> IO ()
+writeGraphToFile g filepath = writeFile filepath (graphFormatOut g)
 
 -- print a fully expanded graph
 printGraph :: RDFGraph -> IO ()
@@ -215,8 +225,10 @@ _unwrap1 :: (RDFGraph -> RDFGraph) -> FilePath -> FilePath -> IO ()
 _unwrap1 function filepath out = do
                               c <- getFileContents filepath
                               let g = graphFromFileContents c
+                              -- forcing lazy evaluation to take care of the contents
+                              writeFile "tmp.ttl" c
                               let final = function g
-                              graphToFile final out
+                              appendGraphToFile final out
 
 -- executes an RDFGraph function on two files, producing an out file
 _unwrap2 :: (RDFGraph -> RDFGraph -> RDFGraph) -> FilePath -> FilePath -> FilePath -> IO ()
@@ -226,7 +238,7 @@ _unwrap2 function filepath filepath' out = do
                               let g = graphFromFileContents c
                               let g' = graphFromFileContents c'
                               let final = function g g'
-                              graphToFile final out
+                              appendGraphToFile final out
 
 -- executes an RDFGraph function on three files, producing an out file
 -- only handles functions that accept a list of graphs
@@ -240,7 +252,7 @@ _unwrap3 function filepath filepath' filepath'' out = do
                               let g'' = graphFromFileContents c''
                               let graphs = [g, g', g'']
                               let final = function graphs
-                              graphToFile final out
+                              appendGraphToFile final out
 
 {-
 _unwrap11 :: ((RDFGraph -> RDFGraph) -> (RDFGraph -> RDFGraph) -> RDFGraph) -> FilePath -> FilePath -> FilePath -> IO ()
@@ -709,9 +721,6 @@ printWrapper msg io = do
                 io
                 putStrLn "-----------------------------"
 ------------------------------
--- toText :: Text -> ParseResult
--- toText p = parseTurtle p Nothing
-
 
 -- REFERENCES
 -- REF1, creating an existential type, author: Fyodor Soikin, accessed April 2022: https://stackoverflow.com/a/52267346/18413650
