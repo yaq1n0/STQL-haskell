@@ -1,4 +1,4 @@
-module Stql where
+--module Stql where
 import System.IO
 import System.Process
 import System.Environment
@@ -12,4 +12,3 @@ main = do (fileName : _ ) <- getArgs
           -- compile interpreter and pass the fileName to it
           callCommand "ghc StqlInterpreter.hs"
           callCommand ("./StqlInterpreter " ++ fileName)
-          putStrLn("salon")

@@ -1,0 +1,5 @@
+NEW out1.ttl
+
+MERGE foo.ttl bar.ttl out1.ttl
+
+PRINT out1.ttl

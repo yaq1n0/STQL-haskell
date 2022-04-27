@@ -12,8 +12,9 @@ tokens :-
 $white+    ;
   "//".*     ;
   NEW        { \s -> TokenNew}
+  PRINT      { \s -> TokenPrint}
   MERGE      { \s -> TokenMerge}
-  FILTER   { \s -> TokenFilter}
+  FILTER     { \s -> TokenFilter}
   TO         { \s -> TokenTo}
   SETALL     { \s -> TokenSetAll}
   INCRALL    { \s -> TokenIncrAll}
@@ -31,11 +32,12 @@ $white+    ;
   \>=        { \s -> TokenGTE}
   \<=        { \s -> TokenLTE}
   .+\.ttl    { \s -> TokenPath (read s)}
-  $alpha [$alpha $digit \_ \’]*   { \s -> TokenVar }
+  $alpha [$alpha $digit \_ \’]*   { \s -> TokenVar (read s)}
 
 {
 data Token =
   TokenNew |
+  TokenPrint |
   TokenMerge |
   TokenFilter |
   TokenTo |

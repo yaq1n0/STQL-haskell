@@ -242,6 +242,7 @@ _unwrap3 function filepath filepath' filepath'' out = do
                               let final = function graphs
                               graphToFile final out
 
+{-
 _unwrap11 :: ((RDFGraph -> RDFGraph) -> (RDFGraph -> RDFGraph) -> RDFGraph) -> FilePath -> FilePath -> FilePath -> IO ()
 _unwrap11 function filepath filepath' out = do
                               contents <- readFile filepath
@@ -273,6 +274,7 @@ _unwrap22 function filepath filepath' filepath'' filepath''' out = do
                               let g''' = graphFromFile contents'''
                               let final = function g g' g'' g'''
                               graphToFile final out
+-}
 
 graphFormatOut :: RDFGraph -> String
 graphFormatOut g = trim $ unlines recheckForDuplicates
@@ -375,6 +377,7 @@ compareGraphs catg catg' g g' = merged
                         firstCatgs = [getCategoryLabel catg arcg | arcg <- S.toList $ getArcs g]
                         sndCatgs = [getCategoryLabel catg' arcg' | arcg' <- S.toList $ getArcs g']
 
+{-
 compareFullGraphs :: RDFGraph -> RDFGraph -> RDFGraph
 compareFullGraphs g g' = merged
                       where
@@ -388,6 +391,7 @@ compareFullGraphs g g' = merged
                         -- all (subj OR pred OR obj) of the first and second graphs, respectively
                         firstCatgs = [arcg | arcg <- S.toList $ getArcs g]
                         sndCatgs = [arcg' | arcg' <- S.toList $ getArcs g']
+-}
 
 mergeMultiple :: [RDFGraph] -> RDFGraph
 mergeMultiple [] = createGraph
@@ -517,9 +521,11 @@ filterByObj :: RDFLabel -> RDFGraph -> RDFGraph
 filterByObj obj graph = extract s graph
             where s arc = arcObj arc == toRDFLabel obj
 
+{-
 filterByAll :: Arc RDFLabel -> RDFGraph -> RDFGraph
 filterByAll (subj, pred, obj) graph = extract s graph
             where s arc = arcSubj arc == allowURIOnly subj && arcPred arc == allowURIOnly pred && arcObj arc == toRDFLabel obj
+-}
 
 filterRangesIn :: Integer -> Integer -> RDFGraph -> RDFGraph
 filterRangesIn n n' graph = extract s graph

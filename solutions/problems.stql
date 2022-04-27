@@ -34,6 +34,8 @@ pr5.stql
 NEW foo1.ttl
 NEW foo2.ttl
 NEW foo3.ttl
+NEW foo4.ttl
+NEW foo5.ttl
 NEW out5.ttl
 
 FILTER OBJ foo.ttl < NUM 0 TO foo1.ttl
@@ -41,11 +43,11 @@ FILTER OBJ foo.ttl > NUM 99 TO foo1.ttl
 SETALL OBJ foo1.ttl BOOL FALSE
 
 FILTER OBJ foo.ttl >= NUM 0 TO foo2.ttl
-FILTER OBJ foo.ttl <= NUM 99 TO foo2.ttl
-SETALL OBJ foo2.ttl BOOL FALSE
+FILTER OBJ foo2.ttl <= NUM 99 TO foo3.ttl
+SETALL OBJ foo3.ttl BOOL FALSE
 
-FILTER OBJ foo.ttl >= NUM 0 TO foo3.ttl
-FILTER OBJ foo.ttl <= NUM 99 TO foo3.ttl
-INCRALL OBJ foo3.ttl NUM 1
+FILTER OBJ foo.ttl >= NUM 0 TO foo4.ttl
+FILTER OBJ foo4.ttl <= NUM 99 TO foo5.ttl
+INCRALL OBJ foo4.ttl NUM 1
 
-MERGE foo1.ttl foo2.ttl foo3.ttl TO out5.ttl
+MERGE foo1.ttl foo3.ttl foo5.ttl TO out5.ttl

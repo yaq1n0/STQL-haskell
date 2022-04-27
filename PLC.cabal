@@ -49,12 +49,32 @@ extra-source-files:
     CHANGELOG.md
     README.md
 
-executable PLC
+executable wrap
     -- .hs or .lhs file containing the Main module.
     main-is:          Stql.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules:    StqlInterpreter, StqlEval, StqlGrammar, StqlTokens, StqlLogic
+    other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+
+    -- Other library packages from which modules are imported.
+    build-depends:    base,
+                      process
+
+    -- Directories containing source files.
+    hs-source-dirs:   ./
+
+    -- Base language which the package is written in.
+    default-language: Haskell2010
+
+executable PLC
+    -- .hs or .lhs file containing the Main module.
+    main-is:          StqlInterpreter.hs
+
+    -- Modules included in this executable, other than Main.
+    other-modules:    StqlEval, StqlGrammar, StqlTokens, StqlLogic
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

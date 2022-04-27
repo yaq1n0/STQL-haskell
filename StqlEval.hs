@@ -1,34 +1,7 @@
 module StqlEval where
 import StqlGrammar
 import StqlLogic
-
-{-
-Stuff in StqlGrammar
-parseError :: [Token] -> a
-parseError [] = error "Unknown Parse Error"
-
-data StqlCat = SubjCat | PredCat | ObjCat deriving (Show, Eq)
-
-data StqlLit = LitStr | LitNum | LitBool deriving (Show, Eq)
-
-data StqlComp = CompEQ | CompGT | CompLT | CompGTE | CompGTE deriving (Show, Eq)
-
-data StqlExp = New String | Let String String
-               | Filter StqlCat String StqlComp StqlCat String String
-               | Filter StqlCat String StqlComp StqlLit String String
-               | Merge2 String String String
-               | Merge3 String String String String
-               | SetAll StqlCat String StqlLit String
-               | IncrAll ObjCat Strig LitNum String
--}
-
-{-
-Stuff in StqlLogic
-data Category = Subj | Pred | Obj
-data Combinator = And | Or
-direction of filtering a graph's triples' objects with two numbered literals
-data Direction = In | Out
--}
+import Swish.RDF.Graph (RDFLabel, toRDFLabel)
 
 {-
 new substituting triple
@@ -44,15 +17,15 @@ type LabelTypeTuple = (Category, RDFLabel)
 -}
 
 catToCat :: StqlCat -> Category
-catToCat Subj = Subj
-catToCat Pred = Pred
-catToCat Obj = Obj
+catToCat SubjCat = Subj
+catToCat PredCat = Pred
+catToCat ObjCat = Obj
 
 strToLB :: StqlLit -> String -> RDFLabel
-strToLB LitStr s =  s
-strToLB LitNum s = read s
-strToLB LitBool "TRUE" = True
-strToLB LitBool "FALSE" = False
+strToLB LitStr s = toRDFLabel s
+strToLB LitNum s = toRDFLabel (read s::String)
+strToLB LitBool "TRUE" = toRDFLabel True
+strToLB LitBool "FALSE" = toRDFLabel False
 
 compToBools :: StqlComp -> (Bool, Bool)
 compToBools CompLT = (False, False)
@@ -61,14 +34,15 @@ compToBools CompGT = (True, False)
 compToBools CompGTE = (True, True)
 
 exec :: StqlExp -> IO ()
-exec (New s) = emptyFile s
+exec (New s) = writeFile s ""
 
--- this probably needs some changing
-exec (FilterBy (c0 s0 CompEQ c1 s1) out) = _unwrap2 (compareGraphs (catToCat c0) (catToCat c1)) s0 s1 out
-exec (FilterBy (c s0 CompEQ l s1) out) = _unwrap1 (handleFilterLabelTypes (catToCat c) (strToLB l s1)) s0 out
-exec (FilterBy (Obj s0 comp LitNum s1) out) = _unwrap1 (filterByLTGT (read s1) (compToBools comp)) s0 out
+exec (Print s) = printFile s
 
-{- this probably goes
+exec (FilterC c0 s0 CompEQ c1 s1 out) = _unwrap2 (compareGraphs (catToCat c0) (catToCat c1)) s0 s1 out
+exec (FilterL c0 s0 CompEQ l1 s1 out) = _unwrap1 (handleFilterLabelTypes (catToCat c0) (strToLB l1 s1)) s0 out
+exec (FilterL ObjCat s0 comp LitNum s1 out) = _unwrap1 (filterLTGT (read s1) (compToBools comp)) s0 out
+
+{-
 exec (FilterByAnd (c0 s0 CompEQ c1 s1) (c2 s2 CompEQ c3 s3) out) = _unwrap22 (compareFullGraphs (compareGraphs (catToCat c0) (catToCat c1)) (compareGraphs (catToCat c2) (catToCat c3))) s0 s1 s2 s3 out
 exec (FilterByAnd (c0 s0 CompEQ c1 s1) (c2 s2 CompEQ l s3) out) = _unwrap21 (compareFullGraphs (compareGraphs (catToCat c0) (catToCat c1)) (handleFilterLabelTypes (catToCat c2) (strToLB l s3))) s0 s1 s2 out
 exec (FilterByAnd (c0 s0 CompEQ c1 s1) (Obj s2 comp LitNum s3) out) = _unwrap21 (compareFullGraphs (compareGraphs (catToCat c0) (catToCat c1)) (filterByLTGT (read s3) (compToBools comp)) s0 s1 s2 out
@@ -93,10 +67,11 @@ exec (FilterByOr (Obj s0 comp0 LitNum s1) (Obj s2 comp1 LitNum s3) out) = _unwra
 exec (Merge2 s0 s1 out) = _unwrap2 mergeGraphs s0 s1 out
 exec (Merge3 s0 s1 s2 out) = _unwrap3 mergeMultiple s0 s1 s2 out
 
-exec (SetAll Subj s0 l s1) = _unwrap1 (editFullGraphs (Just (LabelTypeSubTriple (strToLB l s1)), Nothing, Nothing) s0 s0
-exec (SetAll Pred s0 l s1) = _unwrap1 (editFullGraphs (Nothing, Just (LabelTypeSubTriple (strToLB l s1)), Nothing) s0 s0
-exec (SetAll Obj s0 l s1) = _unwrap1 (editFullGraphs (Nothing, Nothing, Just (LabelTypeSubTriple (strToLB l s1))) s0 s0
+-- s0 file path l is the literal type s1 is the actual literals
+exec (SetAll SubjCat s0 l s1) = _unwrap1 (editFullGraphs (Just (LabelTypeSubTriple s1), Nothing, Nothing)) s0 s0
+exec (SetAll PredCat s0 l s1) = _unwrap1 (editFullGraphs (Nothing, Just (LabelTypeSubTriple s1), Nothing)) s0 s0
+exec (SetAll ObjCat s0 l s1) = _unwrap1 (editFullGraphs (Nothing, Nothing, Just (LabelTypeSubTriple s1))) s0 s0
 
-exec (IncrAll Subj s0 LitNum s1) = _unwrap1 (editFullGraphs (Just (Incr (read s1)), Nothing, Nothing)) s0 s0
-exec (IncrAll Pred s0 LitNum s1) = _unwrap1 (editFullGraphs (Nothing, Just (Incr (read s1)), Nothing)) s0 s0
-exec (IncrAll Obj s0 LitNum s1) = _unwrap1 (editFullGraphs (Nothing, Nothing, Just (Incr (read s1)))) s0 s0
+exec (IncrAll SubjCat s0 LitNum s1) = _unwrap1 (editFullGraphs (Just (Incr (read s1)), Nothing, Nothing)) s0 s0
+exec (IncrAll PredCat s0 LitNum s1) = _unwrap1 (editFullGraphs (Nothing, Just (Incr (read s1)), Nothing)) s0 s0
+exec (IncrAll ObjCat s0 LitNum s1) = _unwrap1 (editFullGraphs (Nothing, Nothing, Just (Incr (read s1)))) s0 s0
