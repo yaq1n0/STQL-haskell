@@ -20,8 +20,6 @@ import StqlTokens
   str       { TokenString }
   num       { TokenNum }
   bool      { TokenBool }
-  true      { TokenTrue }
-  false     { TokenFalse }
   '=='      { TokenEQ }
   '>'       { TokenGT }
   '<'       { TokenLT }
@@ -38,8 +36,8 @@ Exp : new path                                      { New $2 }
     | filter Cat path Comp Lit var to path          { FilterL $2 $3 $4 $5 $6 $8 }
     | merge path path to path                       { Merge2 $2 $3 $5 }
     | merge path path path to path                  { Merge3 $2 $3 $4 $6}
-    | setall Cat path Lit var                       { SetAll $2 $3 $4 $5}
-    | incrall Cat path Lit var                      { IncrAll $2 $3 $4 $5}
+    | setall Cat path Lit var to path               { SetAll $2 $3 $4 $5 $7}
+    | incrall Cat path Lit var to path              { IncrAll $2 $3 $4 $5 $7}
 
 Comp : '==' { CompEQ }
      | '>'  { CompGT }
@@ -57,7 +55,7 @@ Cat : subj { SubjCat }
 
 {
 parseError :: [Token] -> a
-parseError [] = error "Unknown Parse Error"
+parseError _ = error "Unknown Parse Error"
 
 data StqlCat = SubjCat | PredCat | ObjCat deriving (Show, Eq)
 
@@ -70,7 +68,7 @@ data StqlExp = New String | Print String
                | FilterL StqlCat String StqlComp StqlLit String String
                | Merge2 String String String
                | Merge3 String String String String
-               | SetAll StqlCat String StqlLit String
-               | IncrAll StqlCat String StqlLit String
+               | SetAll StqlCat String StqlLit String String
+               | IncrAll StqlCat String StqlLit String String
                deriving (Show, Eq)
 }

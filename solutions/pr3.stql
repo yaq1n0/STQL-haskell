@@ -1,7 +1,12 @@
+NEW foo1.ttl
+NEW foo2.ttl
+NEW foo3.ttl
 NEW out3.ttl
 
-FILTER PRED foo.ttl == STR "http://www.cw.org/problem3/#predicate1" TO out3.ttl
-FILTER PRED foo.ttl == STR "http://www.cw.org/problem3/#predicate2" TO out3.ttl
-FILTER PRED foo.ttl == STR "http://www.cw.org/problem3/#predicate3" TO out3.ttl
+FILTER PRED foo.ttl == STR http://www.cw.org/problem3/#predicate1 TO foo1.ttl
+FILTER PRED foo.ttl == STR http://www.cw.org/problem3/#predicate2 TO foo2.ttl
+FILTER PRED foo.ttl == STR http://www.cw.org/problem3/#predicate3 TO foo3.ttl
+
+MERGE foo1.ttl foo2.ttl foo3.ttl TO out3.ttl
 
 PRINT out3.ttl

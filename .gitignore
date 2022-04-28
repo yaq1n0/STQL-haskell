@@ -8,6 +8,9 @@ Main
 Stql
 StqlInterpreter
 
+# cleaning script
+clean.sh
+
 # Haskell-specific files
 dist
 dist-*

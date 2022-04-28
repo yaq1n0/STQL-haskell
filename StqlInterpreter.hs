@@ -23,4 +23,5 @@ main = do (fileName : _ ) <- getArgs
           let parsed = map parseStql lexed
           putStrLn ("Parsed as: \n" ++ (show parsed) ++ "\n")
 
+          putStrLn "Evaluates to: "
           execLoop parsed
