@@ -3,8 +3,8 @@ NEW foo2.ttl
 NEW foo3.ttl
 NEW out5.ttl
 
-FILTER OBJ fooProb5.ttl < NUM 0 TO foo1.ttl
-FILTER OBJ fooProb5.ttl > NUM 99 TO foo2.ttl
+FILTER OBJ foo.ttl < NUM 0 TO foo1.ttl
+FILTER OBJ foo.ttl > NUM 99 TO foo2.ttl
 
 MERGE foo1.ttl foo2.ttl TO foo3.ttl
 
@@ -15,7 +15,7 @@ NEW foo1.ttl
 NEW foo2.ttl
 NEW foo3.ttl
 
-FILTER OBJ fooProb5.ttl >= NUM 0 TO foo1.ttl
+FILTER OBJ foo.ttl >= NUM 0 TO foo1.ttl
 FILTER OBJ foo1.ttl <= NUM 99 TO foo2.ttl
 
 SETALL PRED foo2.ttl STR http://www.cw.org/problem5/#inRange TO foo3.ttl
@@ -24,7 +24,7 @@ SETALL OBJ foo3.ttl BOOL true TO fooB.ttl
 NEW foo1.ttl
 NEW foo2.ttl
 
-FILTER OBJ fooProb5.ttl >= NUM 0 TO foo1.ttl
+FILTER OBJ foo.ttl >= NUM 0 TO foo1.ttl
 FILTER OBJ foo1.ttl <= NUM 99 TO foo2.ttl
 
 INCRALL OBJ foo2.ttl NUM 1 TO fooC.ttl

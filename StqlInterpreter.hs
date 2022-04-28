@@ -6,7 +6,8 @@ import Control.Exception
 import System.Environment
 
 execLoop :: [StqlExp] -> IO ()
-execLoop [] = putStrLn "EOF"
+execLoop [] = putStrLn ""
+--execLoop [] = putStrLn "EOF"
 execLoop (x : xs) = do exec x
                        execLoop xs
 
@@ -15,13 +16,13 @@ main = do (fileName : _ ) <- getArgs
           sourceText <- readFile fileName
 
           let _lines = filter (not . null) (lines sourceText)
-          putStrLn ("Input: \n" ++ sourceText ++ "\n")
+          --putStrLn ("Input: \n" ++ sourceText ++ "\n")
 
           let lexed = map alexScanTokens _lines
-          putStrLn ("Lexed as: \n" ++ (show lexed) ++ "\n")
+          --putStrLn ("Lexed as: \n" ++ (show lexed) ++ "\n")
 
           let parsed = map parseStql lexed
-          putStrLn ("Parsed as: \n" ++ (show parsed) ++ "\n")
+          --putStrLn ("Parsed as: \n" ++ (show parsed) ++ "\n")
 
-          putStrLn "Evaluates to: "
+          --putStrLn "Evaluates to: "
           execLoop parsed
