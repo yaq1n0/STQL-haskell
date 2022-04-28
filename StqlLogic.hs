@@ -75,6 +75,7 @@ printP1 = printWrapper "PROBLEM 1" execP1
 execP1 :: IO ()
 execP1 = do
         let (file, file', _, out) = files
+        writeFile out ""
         _unwrap2 mergeGraphs file file' out
         printFile out
 
@@ -86,6 +87,7 @@ execP2 :: IO ()
 execP2 = do
         let (_, file', _, out) = files
         let filters = p2Test
+        writeFile out ""
         _unwrap1 (filterMultiple filters And) file' out
         printFile out
 
@@ -121,6 +123,7 @@ execP3 :: IO ()
 execP3 = do
         let (_, file', _, out) = files
         let filters = p3Test
+        writeFile out ""
         _unwrap1 (filterMultiple filters Or) file' out
         printFile out
 
@@ -151,6 +154,7 @@ printP4 = printWrapper "PROBLEM 4" execP4
 execP4 :: IO ()
 execP4 = do
         let (file, file', _, out) = files
+        writeFile out ""
         _unwrap2 (compareGraphs Subj Obj) file file' out
         printFile out
 
@@ -163,6 +167,7 @@ execP5 = do
         let (_, _, file'', out) = files
         -- let (foo1, foo2, foo3) = ("foo1.ttl", "foo2.ttl", "foo3.ttl")
         let (triple, triple', triple'') = p5Test
+        writeFile out ""
         _unwrap1 (editGraphs Out 0 99 triple) file'' out
         _unwrap1 (editGraphs In 0 99 triple') file'' out
         _unwrap1 (editGraphs In 0 99 triple'') file'' out
@@ -237,6 +242,9 @@ _unwrap2 function filepath filepath' out = do
                               c' <- getFileContents filepath'
                               let g = graphFromFileContents c
                               let g' = graphFromFileContents c'
+                              -- forcing lazy evaluation to take care of the contents
+                              writeFile "tmp.ttl" c
+                              writeFile "tmp2.ttl" c'
                               let final = function g g'
                               appendGraphToFile final out
 
@@ -250,6 +258,10 @@ _unwrap3 function filepath filepath' filepath'' out = do
                               let g = graphFromFileContents c
                               let g' = graphFromFileContents c'
                               let g'' = graphFromFileContents c''
+                              -- forcing lazy evaluation to take care of the contents
+                              writeFile "tmp.ttl" c
+                              writeFile "tmp2.ttl" c'
+                              writeFile "tmp3.ttl" c''
                               let graphs = [g, g', g'']
                               let final = function graphs
                               appendGraphToFile final out
