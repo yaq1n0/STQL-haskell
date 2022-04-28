@@ -1,6 +1,6 @@
 NEW out2.ttl
 
-FILTER SUBJ foo.ttl == STR "http://www.cw.org/#problem2" TO foo.ttl
-FILTER OBJ foo.tll == BOOL TRUE TO out2.ttl
+FILTER SUBJ foo.ttl == STR http://www.cw.org/#problem2 TO foo.ttl
+FILTER OBJ foo.ttl == BOOL TRUE TO out2.ttl
 
 PRINT out2.ttl

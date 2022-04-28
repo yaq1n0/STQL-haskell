@@ -1,7 +1,9 @@
 module StqlEval where
 import StqlGrammar
 import StqlLogic
+import Data.Maybe (fromJust)
 import Swish.RDF.Graph (RDFLabel, toRDFLabel)
+import Network.URI (URI, parseURI)
 
 {-
 new substituting triple
@@ -22,7 +24,7 @@ catToCat PredCat = Pred
 catToCat ObjCat = Obj
 
 strToLB :: StqlLit -> String -> RDFLabel
-strToLB LitStr s = toRDFLabel s
+strToLB LitStr s = toRDFLabel (fromJust $ parseURI s)
 strToLB LitNum s = toRDFLabel (read s::Int)
 strToLB LitBool "TRUE" = toRDFLabel True
 strToLB LitBool "FALSE" = toRDFLabel False

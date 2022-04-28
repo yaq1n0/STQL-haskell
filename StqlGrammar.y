@@ -20,8 +20,6 @@ import StqlTokens
   str       { TokenString }
   num       { TokenNum }
   bool      { TokenBool }
-  true      { TokenTrue }
-  false     { TokenFalse }
   '=='      { TokenEQ }
   '>'       { TokenGT }
   '<'       { TokenLT }
@@ -57,7 +55,7 @@ Cat : subj { SubjCat }
 
 {
 parseError :: [Token] -> a
-parseError [] = error "Unknown Parse Error"
+parseError _ = error "Unknown Parse Error"
 
 data StqlCat = SubjCat | PredCat | ObjCat deriving (Show, Eq)
 

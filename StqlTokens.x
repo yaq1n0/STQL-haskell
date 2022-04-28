@@ -4,6 +4,7 @@ module StqlTokens where
 
 %wrapper "basic"
 $alpha = [a-zA-Z0-9]
+$alphaext = [a-zA-Z0-9\/\#\:\.\<\>]
 
 tokens :-
 $white+    ;
@@ -21,15 +22,13 @@ $white+    ;
   STR        { \s -> TokenString}
   NUM        { \s -> TokenNum}
   BOOL       { \s -> TokenBool}
-  TRUE       { \s -> TokenTrue}
-  FALSE      { \s -> TokenFalse}
   ==         { \s -> TokenEQ}
   \>         { \s -> TokenGT}
   \<         { \s -> TokenLT}
   \>=        { \s -> TokenGTE}
   \<=        { \s -> TokenLTE}
   $alpha+\.ttl    { \s -> TokenPath s}
-  $alpha+   { \s -> TokenVar s}
+  $alphaext+   { \s -> TokenVar s}
 
 {
 data Token =
@@ -46,8 +45,6 @@ data Token =
   TokenString |
   TokenNum |
   TokenBool |
-  TokenTrue |
-  TokenFalse |
   TokenEQ |
   TokenGT |
   TokenLT |

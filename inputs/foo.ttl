@@ -1,16 +1,16 @@
-<http://www.cw.org/subjectA> <http://www.cw.org/predicateA> <http://www.cw.org/objectA> . 
+<http://www.cw.org/subjectA> <http://www.cw.org/predicateA> <http://www.cw.org/objectA> .
 
 @base <http://www.cw.org/> .
 
-<subjectB> <predicateB> <objectB> .         
+<subjectB> <predicateB> <objectB> .
 @prefix p: <http://www.cw.org/pprefix/> .
-p:subjectC p:predicateC p:objectC .    
+p:subjectC p:predicateC p:objectC .
 
 @prefix q: <http://www.cw.org/qprefix/> .
-p:subjectD q:predicateD q:objectD .     
+p:subjectD q:predicateD q:objectD .
 
-@prefix r: <rprefix/> .                   
-p:subjectE r:predicateE q:objectE .     
+@prefix r: <rprefix/> .
+p:subjectE r:predicateE q:objectE .
 
 <testSubA> <hasNegInt> -50 .
 <testSubA> <hasPosInt> +50 .
@@ -42,4 +42,3 @@ p:subjectE r:predicateE q:objectE .
 <prob4A> <testPredA> <prob4B> .
 <prob4C> <testPredB> <prob4D> .
 <prob4E> <testPredC> <prob4F> .
-

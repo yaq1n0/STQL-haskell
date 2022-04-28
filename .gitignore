@@ -8,6 +8,23 @@ Main
 Stql
 StqlInterpreter
 
+# output files in root
+out1.ttl
+out2.ttl
+out3.ttl
+out4.ttl
+out5.ttl
+
+# solutions in root
+pr1.stql
+pr2.stql
+pr3.stql
+pr4.stql
+pr5.stql
+
+# cleaning script
+clean.sh
+
 # Haskell-specific files
 dist
 dist-*
