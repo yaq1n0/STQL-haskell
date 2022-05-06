@@ -1,0 +1,18 @@
+NEW foo1.ttl
+NEW foo2.ttl
+NEW foo3.ttl
+NEW foo4.ttl
+NEW fooa.ttl
+NEW foob.ttl
+NEW out7.ttl
+
+FILTER SUBJ foo.ttl == STR http://www.org/problem7/#subject TO foo1.ttl
+FILTER PRED foo.ttl == STR http://www.org/problem7/#predicate TO foo2.ttl
+FILTER OBJ foo.ttl == INT 0 TO foo3.ttl
+FILTER OBJ foo.ttl == INT -1 TO foo4.ttl
+
+MERGE foo1.ttl foo2.ttl TO fooa.ttl
+MERGE foo3.ttl foo4.ttl TO foob.ttl
+MERGE fooa.ttl foob.ttl to out7.ttl
+
+PRINT out7.ttl

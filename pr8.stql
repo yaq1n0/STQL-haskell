@@ -1,0 +1,9 @@
+NEW foo1.ttl
+NEW foo2.ttl
+NEW out8.ttl
+
+FILTER PRED foo.ttl == PRED bar.ttl TO foo1.ttl
+FILTER PRED bar.ttl == PRED baz.ttl TO foo2.ttl
+FILTER PRED foo1.ttl == PRED foo2.ttl TO out8.ttl
+
+PRINT out8.ttl

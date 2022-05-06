@@ -1,0 +1,6 @@
+NEW out9.ttl 
+
+FILTER PRED foo.ttl == PRED bar.ttl TO foo1.ttl
+FILTER OBJ foo1.ttl == OBJ baz.ttl TO out9.ttl
+
+PRINT out9.ttl
