@@ -15,7 +15,11 @@ t:subjectE p:predicateE t:objectE .
 <prob4D> <testPredB> <prob4E> .
 <prob4F> <testPredC> <prob4A> .
 
-<prob5A> <hasBool> true .
+<prob6A> <testPredA> <prob6B> .
+<prob6C> <testPredB> <prob6D> .
+
+<prob5A> <hasBool> false .
 
 <prob9C> <testPredA> 100 .
 <prob9D> <testPredC> <obj9A> .
+
