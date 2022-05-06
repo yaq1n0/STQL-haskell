@@ -1,0 +1,21 @@
+NEW out10.ttl
+NEW foo1.ttl
+NEW foo2.ttl
+NEW bools.ttl
+NEW trues.ttl
+NEW falses.ttl
+NEW trueschanged.ttl
+NEW falseschanged.ttl
+NEW out.ttl
+NEW uris.ttl
+
+FILTER OBJ foo.ttl == BOOL true TO trues.ttl
+FILTER OBJ foo.ttl == BOOL false TO falses.ttl
+
+SETALL OBJ foo.ttl BOOL false TO trueschanged.ttl
+SETALL OBJ falses.ttl BOOL true TO falseschanged.ttl
+
+MERGE trueschanged.ttl falseschanged.ttl TO bools.ttl
+MERGE bools.ttl foo.ttl TO out.ttl
+
+PRINT out.ttl

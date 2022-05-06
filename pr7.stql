@@ -6,10 +6,10 @@ NEW fooa.ttl
 NEW foob.ttl
 NEW out7.ttl
 
-FILTER SUBJ foo.ttl == STR http://www.org/problem7/#subject TO foo1.ttl
-FILTER PRED foo.ttl == STR http://www.org/problem7/#predicate TO foo2.ttl
-FILTER OBJ foo.ttl == INT 0 TO foo3.ttl
-FILTER OBJ foo.ttl == INT -1 TO foo4.ttl
+FILTER SUBJ foo.ttl == STR http://www.cw.org/problem7/#subject TO foo1.ttl
+FILTER PRED foo.ttl == STR http://www.cw.org/problem7/#predicate TO foo2.ttl
+FILTER OBJ foo.ttl == NUM 0 TO foo3.ttl
+FILTER OBJ foo.ttl == NUM -1 TO foo4.ttl
 
 MERGE foo1.ttl foo2.ttl TO fooa.ttl
 MERGE foo3.ttl foo4.ttl TO foob.ttl
