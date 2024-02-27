@@ -1,5 +1,0 @@
-IMPORT foo foo.ttl 
-NEW out out3.ttl
-
-WHERE foo.pred == "thing" OR foo.pred == "thing1" OR foo.pred == "thing2"
-ADDTO out foo.all

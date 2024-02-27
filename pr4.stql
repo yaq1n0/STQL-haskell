@@ -1,0 +1,6 @@
+NEW out4.ttl
+
+FILTER SUBJ bar.ttl == OBJ foo.ttl TO out4.ttl
+FILTER SUBJ foo.ttl == OBJ bar.ttl TO out4.ttl
+
+PRINT out4.ttl

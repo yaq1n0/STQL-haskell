@@ -1,0 +1,7 @@
+NEW foo1.ttl
+NEW out2.ttl
+
+FILTER SUBJ foo.ttl == STR http://www.cw.org/#problem2 TO foo1.ttl
+FILTER OBJ foo1.ttl == BOOL true TO out2.ttl
+
+PRINT out2.ttl

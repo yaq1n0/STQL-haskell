@@ -1,5 +1,0 @@
-IMPORT foo foo.ttl
-NEW out out2.ttl
-
-WHERE foo.subj == "thing" AND foo.obj == "other thing"
-ADDTO out foo.all 

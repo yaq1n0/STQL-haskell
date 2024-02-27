@@ -1,0 +1,23 @@
+pr6.ttl
+// not possible wihtout != operator 
+NEW out6.ttl
+
+PRINT out6.ttl
+
+
+
+pr9.ttl 
+
+
+pr10.ttl
+// not possible without a way to extract the MaxValue to an INT 
+NEW out10.ttl
+
+FILTER OBJ foo.ttl == BOOL true TO foo1.ttl
+FILTER OBJ foo.ttl == BOOL false TO foo2.ttl 
+
+MERGE foo1.ttl foo2.ttl TO fooa.ttl
+
+FILTER SUBJ foo.ttl == STR https://cw.org/problem10/#maxValue to max.ttl 
+
+PRINT out10.ttl

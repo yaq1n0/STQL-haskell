@@ -1,9 +1,0 @@
-IMPORT foo foo.ttl
-IMPORT bar bar.ttl
-NEW out out4.ttl
-
-WHERE foo.obj == bar.subj
-ADDTO out foo.all
-
-WHERE foo.subj == bar.obj
-ADDTO out bar.all
